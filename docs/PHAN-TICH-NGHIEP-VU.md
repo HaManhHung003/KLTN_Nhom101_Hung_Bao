@@ -6,8 +6,9 @@
 | **Tên đề tài** | Xây dựng hệ thống mua bán và cho thuê bất động sản |
 | **Nền tảng** | Web App & Mobile App (đa nền tảng) |
 | **Kiến trúc dự kiến** | Microservices phân tán |
-| **Phiên bản tài liệu** | 1.0 |
+| **Phiên bản tài liệu** | 1.1 |
 | **Ngày lập** | 12/08/2026 |
+| **Cập nhật IA giao diện** | 15/08/2026 |
 
 ---
 
@@ -248,6 +249,77 @@ Khám phá → Tìm kiếm trên bản đồ → Lọc tiêu chí → Xem chi ti
 Đăng nhập → Tạo tin (ảnh, mô tả, pháp lý, tọa độ) → Gửi duyệt
     → Admin phê duyệt → Tin hiển thị → Nhận lead qua chat
     → Xác nhận lịch xem → Cập nhật trạng thái (đã cọc / đã bán)
+```
+
+### 5.3. Kiến trúc thông tin giao diện Web (IA — đã hiện thực demo)
+
+Hệ thống Web demo được tổ chức thành **3 portal độc lập**, mỗi portal bám sát hành trình người dùng thay vì liệt kê tính năng rời rạc.
+
+#### A. Portal Người tìm BĐS (`/client/*`) — Marketplace
+
+| Route | Màn hình | Nghiệp vụ |
+|-------|----------|-----------|
+| `/client` | Trang chủ | Hero tìm kiếm, gợi ý AI, tin nổi bật |
+| `/client/tim-kiem` | Tìm kiếm thống nhất | Tab Mua/Thuê + bản đồ 60% + danh sách 40% |
+| `/client/property/:id` | Chi tiết BĐS | Gallery, POI, CTA đặt lịch & chat |
+| `/client/hoat-dong` | Hoạt động của tôi | Tab: Lịch hẹn \| Tin nhắn \| Đặt cọc |
+| `/client/giao-dich` | Giao dịch của tôi | BĐS đang thuê, đang mua, đã hoàn tất |
+| `/client/da-luu` | Đã lưu | Tab: Yêu thích \| So sánh BĐS |
+| `/client/chat` | Chat & AI | Hộp thư + Trợ lý AI |
+| `/client/ca-nhan` | Tài khoản | Hồ sơ, thông báo |
+
+**Điều hướng:** Header (desktop) + Bottom navigation (mobile) gồm 5 mục: Trang chủ · Tìm kiếm · Hoạt động · Đã lưu · Tài khoản.
+
+**Redirect tương thích:** `/client/buy`, `/client/rent`, `/client/search` → `/client/tim-kiem`; `/client/bookings` → `/client/hoat-dong`.
+
+#### B. Portal Môi giới (`/broker/*`) — CRM Console
+
+| Route | Màn hình | Nghiệp vụ |
+|-------|----------|-----------|
+| `/broker` | Tổng quan | KPI + **Việc cần làm hôm nay** |
+| `/broker/properties` | Tin đăng | Pipeline + wizard 5 bước tạo tin |
+| `/broker/khach-hang` | Khách hàng & Lead | Tab: Hộp thư \| Lead mới (gộp CRM) |
+| `/broker/bookings` | Lịch hẹn | Calendar + bảng xác nhận |
+| `/broker/giao-dich` | Giao dịch | BĐS đã cho thuê / bán / đang xử lý |
+| `/broker/phan-tich` | Phân tích | Biểu đồ hiệu suất tin đăng |
+| `/broker/profile` | Hồ sơ & Gói tin | Thông tin môi giới |
+
+**Redirect:** `/broker/leads`, `/broker/inbox` → `/broker/khach-hang`.
+
+#### C. Portal Quản trị (`/admin/*`) — Ops Console
+
+| Route | Màn hình | Nghiệp vụ |
+|-------|----------|-----------|
+| `/admin/dashboard` | Tổng quan | KPI hệ thống, biểu đồ |
+| `/admin/moderation` | Kiểm duyệt | Hàng đợi duyệt/từ chối tin |
+| `/admin/users` | Người dùng | Quản lý tài khoản |
+| `/admin/transactions` | Giao dịch | Giám sát đặt cọc |
+| `/admin/van-hanh` | Vận hành | Tab: Lịch hẹn \| Cọc \| Chat monitor \| Báo cáo vi phạm |
+| `/admin/logs` | Nhật ký | Audit log |
+| `/admin/settings` | Cài đặt | Chính sách nền tảng |
+
+#### D. Hệ thiết kế thống nhất (Design System)
+
+Ba portal dùng **một bộ visual language**:
+
+| Thành phần | Quy chuẩn |
+|------------|-----------|
+| Màu chủ đạo | `brand-600` (#059669) — xanh emerald |
+| Nền app | `slate-50` |
+| Sidebar (Broker/Admin) | Trắng, nav active `brand-50` |
+| Topbar | Trắng, search + bell + avatar |
+| Logo | `BDS Pro` + badge role (KH / MG / QT) |
+| Card | `rounded-2xl`, border slate-200 |
+| Button primary | `portal-btn-primary` |
+
+**Client** giữ top nav + bottom nav (marketplace); **Broker/Admin** dùng sidebar + topbar cùng component `PortalSidebar` / `PortalTopBar`.
+
+#### E. Luồng demo đề tài (3 phút / vai trò)
+
+```
+Người tìm BĐS:  Trang chủ → Tìm kiếm bản đồ → Chi tiết → Chat → Hoạt động (Lịch + Cọc)
+Môi giới:       Tổng quan (Việc cần làm) → Khách hàng → Lịch hẹn → Phân tích
+Quản trị:       Dashboard → Kiểm duyệt → Vận hành (Chat + Báo cáo)
 ```
 
 ---
@@ -675,7 +747,7 @@ Phân tích nghiệp vụ xác định **7 module chức năng chính**, **5 quy
 
 - [ ] Danh sách User Story chi tiết
 - [ ] Sơ đồ kiến trúc Microservices
-- [ ] Wireframe / Mockup UI/UX
+- [x] Wireframe / Mockup UI/UX (Web demo React — IA §5.3)
 - [ ] Đặc tả API (OpenAPI/Swagger)
 - [ ] Kế hoạch kiểm thử
 

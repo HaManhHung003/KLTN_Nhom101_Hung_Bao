@@ -1,0 +1,65 @@
+import {
+  BarChart3,
+  Bell,
+  Bot,
+  Calendar,
+  CreditCard,
+  FileText,
+  GitCompare,
+  Heart,
+  Home,
+  Map,
+  MessageCircle,
+  Plus,
+  Search,
+  Settings,
+  ShieldCheck,
+  User,
+  Users,
+  AlertTriangle,
+  LayoutGrid,
+} from 'lucide-react'
+import type { NavItem } from '@/components/layout/Sidebar'
+
+export const buyerNav: NavItem[] = [
+  { label: 'Trang chủ', path: '/buyer', icon: Home, section: 'Khám phá' },
+  { label: 'Tìm kiếm & Lọc', path: '/buyer/search', icon: Search, section: 'Khám phá' },
+  { label: 'Bản đồ tương tác', path: '/buyer/map', icon: Map, section: 'Khám phá' },
+  { label: 'Yêu thích', path: '/buyer/favorites', icon: Heart, section: 'Cá nhân' },
+  { label: 'So sánh BĐS', path: '/buyer/compare', icon: GitCompare, section: 'Cá nhân' },
+  { label: 'Lịch hẹn xem', path: '/buyer/appointments', icon: Calendar, section: 'Giao dịch' },
+  { label: 'Đặt cọc / Thanh toán', path: '/buyer/payments', icon: CreditCard, section: 'Giao dịch' },
+  { label: 'Tin nhắn', path: '/buyer/chat', icon: MessageCircle, section: 'Liên hệ' },
+  { label: 'Trợ lý AI', path: '/buyer/chatbot', icon: Bot, section: 'Liên hệ' },
+  { label: 'Thông báo', path: '/buyer/notifications', icon: Bell, section: 'Tài khoản' },
+  { label: 'Hồ sơ', path: '/buyer/profile', icon: User, section: 'Tài khoản' },
+]
+
+export const agentNav: NavItem[] = [
+  { label: 'Dashboard', path: '/agent', icon: Home, section: 'Tổng quan' },
+  { label: 'Tin đăng của tôi', path: '/agent/listings', icon: FileText, section: 'Quản lý tin' },
+  { label: 'Tạo tin mới', path: '/agent/listings/new', icon: Plus, section: 'Quản lý tin' },
+  { label: 'Thị trường', path: '/agent/market', icon: Search, section: 'Thị trường' },
+  { label: 'Bản đồ', path: '/agent/map', icon: Map, section: 'Thị trường' },
+  { label: 'Lịch hẹn', path: '/agent/appointments', icon: Calendar, section: 'Vận hành' },
+  { label: 'Giao dịch cọc', path: '/agent/payments', icon: CreditCard, section: 'Vận hành' },
+  { label: 'Lead & Chat', path: '/agent/chat', icon: MessageCircle, section: 'Liên hệ' },
+  { label: 'Trợ lý AI', path: '/agent/chatbot', icon: Bot, section: 'Liên hệ' },
+  { label: 'Thống kê', path: '/agent/analytics', icon: BarChart3, section: 'Báo cáo' },
+  { label: 'Thông báo', path: '/agent/notifications', icon: Bell, section: 'Tài khoản' },
+]
+
+export const adminNav: NavItem[] = [
+  { label: 'Dashboard', path: '/admin', icon: Home, section: 'Tổng quan' },
+  { label: 'Tất cả tin đăng', path: '/admin/listings', icon: LayoutGrid, section: 'BĐS' },
+  { label: 'Kiểm duyệt tin', path: '/admin/moderation', icon: ShieldCheck, section: 'BĐS' },
+  { label: 'Bản đồ hệ thống', path: '/admin/map', icon: Map, section: 'BĐS' },
+  { label: 'Lịch hẹn', path: '/admin/appointments', icon: Calendar, section: 'Vận hành' },
+  { label: 'Giám sát giao dịch', path: '/admin/payments', icon: CreditCard, section: 'Vận hành' },
+  { label: 'Giám sát Chat', path: '/admin/chat', icon: MessageCircle, section: 'Vận hành' },
+  { label: 'Người dùng', path: '/admin/users', icon: Users, section: 'Quản trị' },
+  { label: 'Báo cáo vi phạm', path: '/admin/reports', icon: AlertTriangle, section: 'Quản trị' },
+  { label: 'Báo cáo hệ thống', path: '/admin/analytics', icon: BarChart3, section: 'Báo cáo' },
+  { label: 'Thông báo', path: '/admin/notifications', icon: Bell, section: 'Hệ thống' },
+  { label: 'Cấu hình', path: '/admin/settings', icon: Settings, section: 'Hệ thống' },
+]
