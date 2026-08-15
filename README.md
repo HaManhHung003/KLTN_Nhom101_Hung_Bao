@@ -42,4 +42,4 @@ KLTN_Nhom101_Hung_Bao/
 ---
 
 ## 👥 Nhóm thực hiện
-* **Khóa luận tốt nghiệp — Nhóm 101** (Mạnh Hùng & Văn Bảo)
+* **Khóa luận tốt nghiệp — Nhóm 101** (Mạnh Hưng & Văn Bảo)
