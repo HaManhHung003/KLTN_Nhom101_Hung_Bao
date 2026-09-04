@@ -1,13 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Tabs, TabPanel } from '@/components/common/Tabs'
 import { BuyerAppointments } from './BuyerAppointments'
 import { BuyerChat } from './BuyerChat'
 import { PaymentsView } from '@/pages/shared/PaymentsView'
+import { chatStorage } from '@/services/chatStorage'
 
 const TABS = [
   { id: 'lich-hen', label: 'Lịch hẹn xem' },
-  { id: 'tin-nhan', label: 'Tin nhắn', badge: 2 },
+  { id: 'tin-nhan', label: 'Tin nhắn' },
   { id: 'dat-coc', label: 'Đặt cọc / Thanh toán' },
 ] as const
 
@@ -17,11 +18,31 @@ export function BuyerActivity() {
   const [active, setActive] = useState(
     TABS.some((t) => t.id === initial) ? initial : 'lich-hen',
   )
+  const [unreadCount, setUnreadCount] = useState(() => chatStorage.getUnreadCount())
+
+  useEffect(() => {
+    function updateUnread() {
+      setUnreadCount(chatStorage.getUnreadCount())
+    }
+    updateUnread()
+    window.addEventListener('bdspro_chat_updated', updateUnread)
+    window.addEventListener('storage', updateUnread)
+    return () => {
+      window.removeEventListener('bdspro_chat_updated', updateUnread)
+      window.removeEventListener('storage', updateUnread)
+    }
+  }, [])
 
   function handleTabChange(id: string) {
     setActive(id)
     setParams({ tab: id }, { replace: true })
   }
+
+  const tabsWithBadge = TABS.map((t) =>
+    t.id === 'tin-nhan'
+      ? { ...t, badge: unreadCount > 0 ? unreadCount : undefined }
+      : t
+  )
 
   return (
     <div className="space-y-5">
@@ -32,7 +53,7 @@ export function BuyerActivity() {
         </p>
       </div>
 
-      <Tabs tabs={[...TABS]} active={active} onChange={handleTabChange} />
+      <Tabs tabs={tabsWithBadge} active={active} onChange={handleTabChange} />
 
       <TabPanel active={active} id="lich-hen">
         <BuyerAppointments embedded />

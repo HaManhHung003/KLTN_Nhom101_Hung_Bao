@@ -15,6 +15,7 @@ function createMediaFile(file: File): Promise<MediaFile> {
       name: file.name,
       url,
       type: file.type.startsWith('video/') ? 'video' : 'image',
+      rawFile: file,
     })
   })
 }

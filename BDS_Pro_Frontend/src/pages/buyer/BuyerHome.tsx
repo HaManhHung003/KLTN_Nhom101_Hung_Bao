@@ -1,13 +1,33 @@
-import { Link } from 'react-router-dom'
-import { ArrowRight, MapPin, Search, Sparkles } from 'lucide-react'
-import { PropertyCard } from '@/components/common/PropertyCard'
-import { CLIENT_ROUTES } from '@/config/routes'
-import { buyerNotifications, favoriteIds, properties } from '@/data/mockData'
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Search, Sparkles } from 'lucide-react';
+import { PropertyCard } from '@/components/common/PropertyCard';
+import { CLIENT_ROUTES } from '@/config/routes';
+import { properties as mockProperties } from '@/data/mockData';
+import { propertyService } from '@/services/property.service';
+import type { Property } from '@/types';
 
 export function BuyerHome() {
-  const active = properties.filter((p) => p.status === 'active')
-  const aiRecommended = [...active].sort((a, b) => (b.aiScore ?? 0) - (a.aiScore ?? 0)).slice(0, 4)
-  const unread = buyerNotifications.filter((n) => !n.read).length
+  const [realProperties, setRealProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    propertyService
+      .getProperties({ limit: 12 })
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          setRealProperties(res.data);
+        } else {
+          setRealProperties(mockProperties);
+        }
+      })
+      .catch(() => setRealProperties(mockProperties))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const displayProperties = realProperties.length > 0 ? realProperties : mockProperties;
+  const active = displayProperties.filter((p) => p.status === 'active' || !p.status);
+  const aiRecommended = [...active].sort((a, b) => (b.aiScore ?? 0) - (a.aiScore ?? 0)).slice(0, 4);
 
   return (
     <div className="space-y-8">
@@ -60,61 +80,49 @@ export function BuyerHome() {
         </div>
       </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Link to={`${CLIENT_ROUTES.activity}?tab=lich-hen`} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:shadow-md">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Sắp tới</p>
-          <p className="mt-1 text-lg font-bold text-slate-900">Lịch xem nhà</p>
-          <p className="mt-1 text-sm text-brand-600">18/08 · 9:00 · Vinhomes CP</p>
-        </Link>
-        <Link to={CLIENT_ROUTES.deals} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-emerald-200 hover:shadow-md">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Giao dịch</p>
-          <p className="mt-1 text-lg font-bold text-slate-900">2 thuê · 1 mua</p>
-          <p className="mt-1 text-sm text-emerald-600">Xem BĐS đã thuê / mua</p>
-        </Link>
-        <Link to={`${CLIENT_ROUTES.activity}?tab=tin-nhan`} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:shadow-md">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Liên hệ</p>
-          <p className="mt-1 text-lg font-bold text-slate-900">2 tin nhắn mới</p>
-          <p className="mt-1 text-sm text-slate-500">Trần Văn Bảo · Môi giới</p>
-        </Link>
-        <Link to={CLIENT_ROUTES.profile} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:shadow-md">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Thông báo</p>
-          <p className="mt-1 text-lg font-bold text-slate-900">{unread} chưa đọc</p>
-          <p className="mt-1 text-sm text-slate-500">Nhắc lịch & gợi ý AI</p>
-        </Link>
-      </div>
-
-      <section>
-        <div className="mb-4 flex items-center justify-between">
+      {/* AI Recommendation Section */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-violet-500" />
-            <h2 className="text-xl font-bold text-slate-900">Gợi ý cho bạn</h2>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">Gợi ý AI cho bạn</h2>
+              <p className="text-xs text-slate-500">Chấm điểm chất lượng & tin cậy theo dữ liệu hệ thống</p>
+            </div>
           </div>
-          <Link to={CLIENT_ROUTES.search} className="text-sm font-medium text-brand-600 hover:underline">
-            Xem thêm
+          <Link to={CLIENT_ROUTES.search} className="text-sm font-semibold text-brand-600 hover:text-brand-700">
+            Xem tất cả →
           </Link>
         </div>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {aiRecommended.map((p) => (
-            <PropertyCard key={p.id} property={p} isFavorite={favoriteIds.includes(p.id)} />
+
+        {loading ? (
+          <div className="py-12 text-center text-sm text-slate-400">Đang nạp dữ liệu BĐS...</div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {aiRecommended.map((p) => (
+              <PropertyCard key={p.id} property={p} isFavorite={false} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Recent Properties Section */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-slate-900">Bất động sản mới nhất</h2>
+          <Link to={CLIENT_ROUTES.search} className="text-sm font-semibold text-brand-600 hover:text-brand-700">
+            Khám phá thêm →
+          </Link>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {active.slice(0, 8).map((p) => (
+            <PropertyCard key={p.id} property={p} isFavorite={false} />
           ))}
         </div>
       </section>
-
-      <Link
-        to={CLIENT_ROUTES.search}
-        className="flex items-center justify-between rounded-2xl border border-dashed border-brand-300 bg-brand-50/50 p-6 transition hover:bg-brand-50"
-      >
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-100">
-            <MapPin className="h-6 w-6 text-brand-600" />
-          </div>
-          <div>
-            <p className="font-bold text-slate-900">Xem trên bản đồ</p>
-            <p className="text-sm text-slate-500">Tìm theo bán kính từ vị trí làm việc / tiện ích</p>
-          </div>
-        </div>
-        <ArrowRight className="h-5 w-5 text-brand-600" />
-      </Link>
     </div>
-  )
+  );
 }

@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom'
 import { BrandLogo } from '@/components/layout/shared/BrandLogo'
 import { PortalHeaderActions } from '@/components/layout/shared/PortalHeaderActions'
 import { ADMIN_ROUTES, BROKER_ROUTES, CLIENT_ROUTES } from '@/config/routes'
-import { buyerNotifications, currentUsers } from '@/data/mockData'
 
 const HEADER_NAV = [
   { label: 'Trang chủ', path: CLIENT_ROUTES.home },
@@ -13,8 +12,6 @@ const HEADER_NAV = [
 ] as const
 
 export function ClientHeader() {
-  const user = currentUsers.buyer
-
   return (
     <header className="portal-header">
       <div className="mx-auto flex h-14 min-h-[3.5rem] max-w-7xl items-center justify-between gap-2 px-3 sm:h-16 sm:gap-4 sm:px-6">
@@ -32,11 +29,7 @@ export function ClientHeader() {
           ))}
         </nav>
 
-        <PortalHeaderActions
-          user={{ name: user.name, avatar: user.avatar, roleLabel: 'Khách hàng' }}
-          notifications={buyerNotifications}
-          profilePath={CLIENT_ROUTES.profile}
-        />
+        <PortalHeaderActions />
       </div>
     </header>
   )

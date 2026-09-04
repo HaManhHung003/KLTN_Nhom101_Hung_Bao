@@ -5,18 +5,15 @@ import type { Notification } from '@/types'
 
 interface PortalTopBarProps {
   searchPlaceholder?: string
-  user: { name: string; avatar: string; roleLabel: string }
-  notifications: Notification[]
+  user?: { name: string; avatar: string; roleLabel: string }
+  notifications?: Notification[]
   actions?: ReactNode
   profilePath?: string
 }
 
 export function PortalTopBar({
   searchPlaceholder = 'Tìm kiếm...',
-  user,
-  notifications,
   actions,
-  profilePath,
 }: PortalTopBarProps) {
   return (
     <header className="portal-topbar">
@@ -31,7 +28,7 @@ export function PortalTopBar({
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-3">
         {actions}
-        <PortalHeaderActions user={user} notifications={notifications} profilePath={profilePath} />
+        <PortalHeaderActions />
       </div>
     </header>
   )

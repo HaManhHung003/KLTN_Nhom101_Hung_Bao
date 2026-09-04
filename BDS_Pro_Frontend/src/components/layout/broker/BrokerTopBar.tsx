@@ -1,14 +1,5 @@
-import { PortalTopBar } from '@/components/layout/shared/PortalTopBar'
-import { agentNotifications, currentUsers } from '@/data/mockData'
+import { PortalTopBar } from '@/components/layout/shared/PortalTopBar';
 
 export function BrokerTopBar() {
-  const user = currentUsers.agent
-
-  return (
-    <PortalTopBar
-      searchPlaceholder="Tìm tin, lead, lịch hẹn..."
-      user={{ name: user.name, avatar: user.avatar, roleLabel: 'Môi giới' }}
-      notifications={agentNotifications}
-    />
-  )
+  return <PortalTopBar searchPlaceholder="Tìm tin đăng, khách hàng, lịch hẹn..." />;
 }
