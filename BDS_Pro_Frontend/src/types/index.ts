@@ -14,6 +14,8 @@ export interface User {
   role: UserRole
   avatar: string
   verified?: boolean
+  active?: boolean
+  createdAt?: string
 }
 
 export interface Property {
@@ -41,6 +43,7 @@ export interface Property {
   bathrooms?: number
   createdAt: string
   aiScore?: number
+  rejectReason?: string | null
   /** Đánh dấu BĐS đã được người dùng hiện tại lưu yêu thích hay chưa. */
   isFavorited?: boolean
 }

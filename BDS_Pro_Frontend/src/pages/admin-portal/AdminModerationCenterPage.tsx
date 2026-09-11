@@ -3,50 +3,59 @@ import { ShieldAlert } from 'lucide-react';
 import { ModerationDrawer } from '@/components/admin/ModerationDrawer';
 import { RejectListingModal } from '@/components/admin/RejectListingModal';
 import { RiskScoreBadge } from '@/components/admin/RiskScoreBadge';
-import { moderationQueue as seedQueue } from '@/data/mockData';
 import { propertyService } from '@/services/property.service';
 import type { ModerationQueueItem } from '@/types/admin';
+import type { Property } from '@/types';
 
 export function AdminModerationCenterPage() {
-  const [queue, setQueue] = useState<ModerationQueueItem[]>(seedQueue);
+  const [queue, setQueue] = useState<ModerationQueueItem[]>([]);
   const [selected, setSelected] = useState<ModerationQueueItem | null>(null);
   const [rejectTarget, setRejectTarget] = useState<ModerationQueueItem | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchPending = () => {
+    setLoading(true);
     propertyService
       .getPendingProperties()
-      .then((res) => {
-        if (res.data && res.data.length > 0) {
-          const items: ModerationQueueItem[] = res.data.map((p) => ({
-            id: p.id,
-            propertyId: p.id,
-            title: p.title,
-            thumbnail: p.images?.[0] || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
-            brokerName: p.ownerName || 'Môi giới',
-            submittedAt: p.createdAt || '2026-08-28',
-            riskScore: 'low',
-            price: p.price,
-            transactionType: p.transactionType || 'sale',
-            type: p.type || 'apartment',
-            area: p.area,
-            address: p.address,
-            district: p.district || 'Quận 1',
-            city: p.city || 'TP. Hồ Chí Minh',
-            description: p.description,
-            legalStatus: p.legalStatus || 'so_hong',
-            bedrooms: p.bedrooms,
-            bathrooms: p.bathrooms,
-            amenities: p.amenities || [],
-            validationChecks: [
-              { id: '1', label: 'Thông tin hợp lệ', status: 'passed' },
-            ],
-          }));
-          setQueue(items);
-        }
+      .then((res: any) => {
+        const list: Property[] = Array.isArray(res) ? res : res?.data || [];
+        const items: ModerationQueueItem[] = list.map((p) => ({
+          id: p.id,
+          propertyId: p.id,
+          title: p.title,
+          thumbnail: p.images?.[0] || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
+          brokerName: p.ownerName || 'Môi giới',
+          submittedAt: p.createdAt ? new Date(p.createdAt).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
+          riskScore: 'low',
+          price: p.price,
+          transactionType: p.transactionType || 'sale',
+          type: p.type || 'apartment',
+          area: p.area,
+          address: p.address,
+          district: p.district || 'Quận 1',
+          city: p.city || 'TP. Hồ Chí Minh',
+          description: p.description,
+          legalStatus: p.legalStatus || 'so_hong',
+          bedrooms: p.bedrooms,
+          bathrooms: p.bathrooms,
+          amenities: p.amenities || [],
+          validationChecks: [
+            { id: '1', label: 'Thông tin hợp lệ', status: 'passed' },
+          ],
+        }));
+        setQueue(items);
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error('Lỗi nạp danh sách duyệt tin:', err);
+        setQueue([]);
+      })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchPending();
+    window.addEventListener('bdspro_property_updated', fetchPending);
+    return () => window.removeEventListener('bdspro_property_updated', fetchPending);
   }, []);
 
   async function handleApprove(id: string) {

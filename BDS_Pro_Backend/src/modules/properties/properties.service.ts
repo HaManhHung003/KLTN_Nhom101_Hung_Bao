@@ -91,6 +91,8 @@ export class PropertiesService {
       qb.andWhere('(p.title LIKE :q OR p.address LIKE :q OR p.description LIKE :q)', {
         q: `%${query.q}%`,
       });
+    if (query.ownerId)
+      qb.andWhere('p.owner_id = :ownerId', { ownerId: query.ownerId });
 
     switch (query.sort) {
       case 'price_asc':

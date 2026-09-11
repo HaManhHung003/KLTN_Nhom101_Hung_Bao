@@ -79,6 +79,14 @@ export class PropertiesController {
     );
   }
 
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Get('all')
+  @ApiOperation({ summary: 'Toàn bộ tin đăng hệ thống (Admin)' })
+  findAllAdmin(@Query() dto: SearchPropertyDto) {
+    return this.service.findAll(dto, undefined, false);
+  }
+
   @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Chi tiết tin đăng' })

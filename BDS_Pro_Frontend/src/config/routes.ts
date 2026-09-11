@@ -41,6 +41,7 @@ export const ADMIN_ROUTES = {
   dashboard: '/admin/dashboard',
   overview: '/admin/dashboard',
   moderation: '/admin/moderation',
+  properties: '/admin/properties',
   users: '/admin/users',
   transactions: '/admin/transactions',
   operations: '/admin/van-hanh',

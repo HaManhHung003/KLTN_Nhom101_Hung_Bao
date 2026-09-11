@@ -17,14 +17,17 @@ export function AgentListingsHub() {
   const fetchMine = () => {
     propertyService
       .getMyProperties()
-      .then((res) => {
-        if (res && res.data) setMine(res.data);
+      .then((res: any) => {
+        const list = Array.isArray(res) ? res : res?.data || [];
+        setMine(list);
       })
       .catch(() => {});
   };
 
   useEffect(() => {
     fetchMine();
+    window.addEventListener('bdspro_property_updated', fetchMine);
+    return () => window.removeEventListener('bdspro_property_updated', fetchMine);
   }, []);
 
   const handleCreatedSuccess = () => {

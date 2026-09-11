@@ -52,6 +52,27 @@ export class UsersService {
     await this.repo.update({ id: userId }, { passwordHash });
   }
 
+  /** Lưu mã OTP và thời điểm hết hạn vào bảng users. */
+  async setOtp(userId: string, otp: string, expiry: Date) {
+    await this.repo.update({ id: userId }, { otpCode: otp, otpExpiry: expiry });
+  }
+
+  /** Tìm entity user kèm cột OTP (dùng nội bộ trong auth). */
+  async findRawWithOtp(
+    where: Partial<Pick<User, 'id' | 'email'>>,
+  ): Promise<User | null> {
+    const qb = this.repo.createQueryBuilder('u');
+    if (where.id) qb.where('u.id = :id', { id: where.id });
+    if (where.email) qb.where('u.email = :email', { email: where.email });
+    qb.addSelect(['u.passwordHash', 'u.refreshTokenHash', 'u.otpCode', 'u.otpExpiry']);
+    return qb.getOne();
+  }
+
+  /** Kích hoạt tài khoản sau khi xác thực OTP thành công. */
+  async activateUser(userId: string, data: Partial<User>) {
+    await this.repo.update({ id: userId }, data);
+  }
+
   /** Hồ sơ user hiện tại (public). */
   async getProfile(userId: string) {
     const user = await this.repo.findOne({ where: { id: userId } });

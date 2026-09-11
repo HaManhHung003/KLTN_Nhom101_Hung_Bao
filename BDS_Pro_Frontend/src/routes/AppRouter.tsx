@@ -31,6 +31,7 @@ import { AgentAnalytics } from '@/pages/agent/AgentAnalytics';
 // Admin pages
 import { AdminOverviewPage } from '@/pages/admin-portal/AdminOverviewPage';
 import { AdminModerationPage } from '@/pages/admin-portal/AdminModerationPage';
+import { AdminPropertiesPage } from '@/pages/admin-portal/AdminPropertiesPage';
 import { AdminUsersPage } from '@/pages/admin-portal/AdminUsersPage';
 import { AdminTransactionsPage } from '@/pages/admin-portal/AdminTransactionsPage';
 import { AdminOperationsPage } from '@/pages/admin-portal/AdminOperationsPage';
@@ -97,6 +98,7 @@ export function AppRouter() {
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminOverviewPage />} />
         <Route path="moderation" element={<AdminModerationPage />} />
+        <Route path="properties" element={<AdminPropertiesPage />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="transactions" element={<AdminTransactionsPage />} />
         <Route path="van-hanh" element={<AdminOperationsPage />} />

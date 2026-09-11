@@ -11,11 +11,14 @@ import { UserRole } from '@/common/enums';
 import { UsersService } from '@/modules/users/users.service';
 import { toPublicUser } from '@/modules/users/user.mapper';
 import { User } from '@/modules/users/entities/user.entity';
+import { MailService } from '@/modules/mail/mail.service';
 import {
   ChangePasswordDto,
   ForgotPasswordDto,
   LoginDto,
   RegisterDto,
+  SendOtpDto,
+  VerifyOtpDto,
 } from './dto/auth.dto';
 import { JwtPayload } from './strategies/jwt.strategy';
 
@@ -25,6 +28,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly mailService: MailService,
   ) {}
 
   /** Sinh cặp access + refresh token, đồng thời lưu hash refresh token. */
@@ -51,6 +55,84 @@ export class AuthService {
     await this.usersService.setRefreshTokenHash(user.id, refreshTokenHash);
 
     return { accessToken, refreshToken };
+  }
+
+  /**
+   * Bước 1: Gửi mã OTP 6 chữ số đến email đăng ký.
+   * Nếu email đã tồn tại và đã verified -> báo lỗi conflict.
+   * Nếu email đã tồn tại nhưng chưa verified -> ghi đè OTP mới (cho phép thử lại).
+   */
+  async sendOtp(dto: SendOtpDto) {
+    const existing = await this.usersService.findRaw({ email: dto.email });
+    if (existing && existing.verified) {
+      throw new ConflictException('Email này đã được đăng ký và xác thực.');
+    }
+
+    // Tạo mã OTP ngẫu nhiên 6 chữ số
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
+
+    if (existing) {
+      // User đã tồn tại nhưng chưa verified → cập nhật OTP mới
+      await this.usersService.setOtp(existing.id, otp, expiry);
+    } else {
+      // Tạo user tạm thời chưa verified, chờ xác thực OTP
+      const dummyHash = await bcrypt.hash(Math.random().toString(), 5);
+      const user = await this.usersService.create({
+        name: dto.name,
+        email: dto.email,
+        passwordHash: dummyHash,
+        role: UserRole.BUYER,
+        verified: false,
+        active: false,
+        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(dto.name)}`,
+        otpCode: otp,
+        otpExpiry: expiry,
+      });
+      void user; // tránh unused warning
+    }
+
+    // Gửi email OTP thật
+    await this.mailService.sendOtpEmail(dto.email, dto.name, otp);
+
+    return { message: `Mã OTP đã được gửi đến ${dto.email}. Vui lòng kiểm tra hộp thư (kể cả spam).` };
+  }
+
+  /**
+   * Bước 2: Xác thực OTP và hoàn tất đăng ký tài khoản.
+   */
+  async verifyOtpAndRegister(dto: VerifyOtpDto) {
+    const user = await this.usersService.findRawWithOtp({ email: dto.email });
+    if (!user) throw new BadRequestException('Email không tồn tại trong hệ thống.');
+
+    if (!user.otpCode || !user.otpExpiry) {
+      throw new BadRequestException('Chưa có mã OTP nào được gửi. Vui lòng yêu cầu gửi lại.');
+    }
+
+    if (new Date() > user.otpExpiry) {
+      throw new BadRequestException('Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới.');
+    }
+
+    if (user.otpCode !== dto.otp) {
+      throw new BadRequestException('Mã OTP không chính xác. Vui lòng kiểm tra lại.');
+    }
+
+    // OTP hợp lệ → cập nhật mật khẩu, role, phone và đánh dấu verified
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    await this.usersService.activateUser(user.id, {
+      name: dto.name,
+      phone: dto.phone ?? null,
+      passwordHash,
+      role: dto.role ?? UserRole.BUYER,
+      verified: true,
+      active: true,
+      otpCode: null,
+      otpExpiry: null,
+    });
+
+    const activatedUser = await this.usersService.findRaw({ id: user.id });
+    const tokens = await this.issueTokens(activatedUser!);
+    return { user: toPublicUser(activatedUser!), ...tokens };
   }
 
   async register(dto: RegisterDto) {

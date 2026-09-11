@@ -36,7 +36,8 @@ import {
 } from 'lucide-react';
 import { authStorage, authService } from '@/services/auth.service';
 import { propertyService, type NearbyPoi } from '@/services/property.service';
-import { chatStorage } from '@/services/chatStorage';
+import { chatService } from '@/services/chat.service';
+import { floatingChat } from '@/services/floatingChat';
 import { recentViews, type RecentViewItem } from '@/services/propertyStorage';
 import { CLIENT_ROUTES } from '@/config/routes';
 import { BookingModal } from '@/components/client/BookingModal';
@@ -190,20 +191,25 @@ export function ClientPropertyDetailPage() {
     [activePoiCategory, pois],
   );
 
-  function handleContactHost() {
+  async function handleContactHost() {
     if (!property) return;
     if (!isLoggedIn) {
       navigate('/login');
       return;
     }
-    const conv = chatStorage.createOrGetConversation({
-      propertyId: property.id,
-      propertyTitle: property.title,
-      hostName: property.ownerName || 'Môi giới',
-      hostAvatar: ownerAvatar,
-      initialMessage: `Chào anh/chị, em quan tâm đến bất động sản "${property.title}". Anh/chị cho em xin thêm thông tin tư vấn nhé!`,
-    });
-    navigate(`${CLIENT_ROUTES.chat}?conv=${conv.id}`);
+    try {
+      const conv = await chatService.startConversation(property.ownerId, property.id);
+      if (!conv.lastMessage) {
+        await chatService.sendMessage(
+          conv.id,
+          `Chào anh/chị ${property.ownerName || 'Môi giới'}, em quan tâm đến bất động sản "${property.title}". Anh/chị cho em xin thêm thông tin tư vấn nhé!`,
+        );
+      }
+      floatingChat.open(conv.id);
+    } catch (err: any) {
+      console.error('Lỗi khởi tạo chat:', err);
+      navigate(`${CLIENT_ROUTES.chat}`);
+    }
   }
 
   async function handleToggleFavorite() {
