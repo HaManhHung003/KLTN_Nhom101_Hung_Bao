@@ -12,8 +12,6 @@ import { ChatModule } from './modules/chat/chat.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { UploadModule } from './modules/upload/upload.module';
-import { BlogModule } from './modules/blog/blog.module';
-import { PublicModule } from './modules/public/public.module';
 
 @Module({
   imports: [
@@ -41,8 +39,6 @@ import { PublicModule } from './modules/public/public.module';
     NotificationsModule,
     AdminModule,
     UploadModule,
-    BlogModule,
-    PublicModule,
   ],
 })
 export class AppModule {}

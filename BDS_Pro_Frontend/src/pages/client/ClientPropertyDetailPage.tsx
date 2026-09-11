@@ -37,7 +37,7 @@ import {
 import { authStorage, authService } from '@/services/auth.service';
 import { propertyService, type NearbyPoi } from '@/services/property.service';
 import { chatStorage } from '@/services/chatStorage';
-import { recentViews } from '@/services/recentViewsStorage';
+import { recentViews, type RecentViewItem } from '@/services/propertyStorage';
 import { CLIENT_ROUTES } from '@/config/routes';
 import { BookingModal } from '@/components/client/BookingModal';
 import { DepositModal } from '@/components/common/DepositModal';
@@ -1133,7 +1133,7 @@ function RecentlyViewed({ currentId }: { currentId: string }) {
     return () => window.removeEventListener('bdspro_history_updated', refresh);
   }, []);
 
-  const others = items.filter((v) => v.id !== currentId).slice(0, 4);
+  const others = items.filter((v: RecentViewItem) => v.id !== currentId).slice(0, 4);
   if (others.length === 0) return null;
 
   return (
@@ -1143,7 +1143,7 @@ function RecentlyViewed({ currentId }: { currentId: string }) {
         <h3 className="text-xl font-bold text-slate-900">Đã xem gần đây</h3>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {others.map((v) => (
+        {others.map((v: RecentViewItem) => (
           <Link
             key={v.id}
             to={CLIENT_ROUTES.property(v.id)}

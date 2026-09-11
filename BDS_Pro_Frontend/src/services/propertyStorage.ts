@@ -228,3 +228,43 @@ export const propertyStorage = {
     window.dispatchEvent(new Event('bdspro_property_updated'));
   },
 };
+
+export interface RecentViewItem {
+  id: string;
+  title: string;
+  price: number;
+  transactionType: 'sale' | 'rent';
+  area: number;
+  district: string;
+  image: string;
+}
+
+export const recentViews = {
+  get(): RecentViewItem[] {
+    try {
+      const data = localStorage.getItem('bdspro_recent_views');
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+  add(item: any) {
+    if (!item || !item.id) return;
+    const list = this.get().filter((x: RecentViewItem) => x.id !== item.id);
+    const entry: RecentViewItem = {
+      id: item.id,
+      title: item.title || '',
+      price: item.price || 0,
+      transactionType: item.transactionType || 'sale',
+      area: item.area || 0,
+      district: item.district || '',
+      image: item.images?.[0] || item.image || '',
+    };
+    list.unshift(entry);
+    localStorage.setItem('bdspro_recent_views', JSON.stringify(list.slice(0, 10)));
+    window.dispatchEvent(new Event('bdspro_history_updated'));
+  },
+  record(item: any) {
+    this.add(item);
+  },
+};

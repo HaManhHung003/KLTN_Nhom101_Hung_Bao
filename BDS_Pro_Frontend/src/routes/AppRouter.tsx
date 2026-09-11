@@ -1,69 +1,52 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
-import { ClientLayout } from '@/layouts/ClientLayout'
-import { BrokerLayout } from '@/layouts/BrokerLayout'
-import { AdminLayout } from '@/layouts/AdminLayout'
-import { PublicLayout } from '@/layouts/PublicLayout'
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { ClientLayout } from '@/layouts/ClientLayout';
+import { BrokerLayout } from '@/layouts/BrokerLayout';
+import { AdminLayout } from '@/layouts/AdminLayout';
 
-import { LandingPage } from '@/pages/public/LandingPage'
-import { LoginPage } from '@/pages/public/LoginPage'
-import { RegisterPage } from '@/pages/public/RegisterPage'
-import { ForgotPasswordPage } from '@/pages/public/ForgotPasswordPage'
-import { PublicPropertyListPage } from '@/pages/public/PublicPropertyListPage'
-import { PublicPropertyDetailPage } from '@/pages/public/PublicPropertyDetailPage'
-import { PublicMapPage } from '@/pages/public/PublicMapPage'
-import { ComparePage } from '@/pages/public/ComparePage'
-import { BlogListPage } from '@/pages/public/BlogListPage'
-import { BlogDetailPage } from '@/pages/public/BlogDetailPage'
-import { AboutPage } from '@/pages/public/AboutPage'
-import { ContactPage } from '@/pages/public/ContactPage'
+import { LandingPage } from '@/pages/public/LandingPage';
+import { LoginPage } from '@/pages/public/LoginPage';
+import { RegisterPage } from '@/pages/public/RegisterPage';
+import { ForgotPasswordPage } from '@/pages/public/ForgotPasswordPage';
 
 // Client pages
-import { ClientHomePage } from '@/pages/client/ClientHomePage'
-import { ClientSearchPage } from '@/pages/client/ClientSearchPage'
-import { ClientPropertyDetailPage } from '@/pages/client/ClientPropertyDetailPage'
-import { ClientChatPage } from '@/pages/client/ClientChatPage'
-import { ClientProfilePage } from '@/pages/client/ClientProfilePage'
-import { ClientActivityPage } from '@/pages/client/ClientActivityPage'
-import { ClientSavedPage } from '@/pages/client/ClientSavedPage'
-import { ClientDealsPage } from '@/pages/client/ClientDealsPage'
+import { ClientHomePage } from '@/pages/client/ClientHomePage';
+import { ClientSearchPage } from '@/pages/client/ClientSearchPage';
+import { ClientPropertyDetailPage } from '@/pages/client/ClientPropertyDetailPage';
+import { ClientChatPage } from '@/pages/client/ClientChatPage';
+import { ClientProfilePage } from '@/pages/client/ClientProfilePage';
+import { ClientActivityPage } from '@/pages/client/ClientActivityPage';
+import { ClientSavedPage } from '@/pages/client/ClientSavedPage';
+import { ClientDealsPage } from '@/pages/client/ClientDealsPage';
 
 // Broker pages
-import { BrokerDashboardPage } from '@/pages/broker/BrokerDashboardPage'
-import { BrokerPropertiesPage } from '@/pages/broker/BrokerPropertiesPage'
-import { BrokerBookingsPage } from '@/pages/broker/BrokerBookingsPage'
-import { BrokerCustomersPage } from '@/pages/broker/BrokerCustomersPage'
-import { BrokerProfilePage } from '@/pages/broker/BrokerProfilePage'
-import { BrokerNewPropertyPage } from '@/pages/broker/BrokerNewPropertyPage'
-import { BrokerDealsPage } from '@/pages/broker/BrokerDealsPage'
-import { AgentAnalytics } from '@/pages/agent/AgentAnalytics'
+import { BrokerDashboardPage } from '@/pages/broker/BrokerDashboardPage';
+import { BrokerPropertiesPage } from '@/pages/broker/BrokerPropertiesPage';
+import { BrokerBookingsPage } from '@/pages/broker/BrokerBookingsPage';
+import { BrokerCustomersPage } from '@/pages/broker/BrokerCustomersPage';
+import { BrokerProfilePage } from '@/pages/broker/BrokerProfilePage';
+import { BrokerNewPropertyPage } from '@/pages/broker/BrokerNewPropertyPage';
+import { BrokerDealsPage } from '@/pages/broker/BrokerDealsPage';
+import { AgentAnalytics } from '@/pages/agent/AgentAnalytics';
 
 // Admin pages
-import { AdminOverviewPage } from '@/pages/admin-portal/AdminOverviewPage'
-import { AdminModerationPage } from '@/pages/admin-portal/AdminModerationPage'
-import { AdminUsersPage } from '@/pages/admin-portal/AdminUsersPage'
-import { AdminTransactionsPage } from '@/pages/admin-portal/AdminTransactionsPage'
-import { AdminOperationsPage } from '@/pages/admin-portal/AdminOperationsPage'
-import { AdminLogsPage } from '@/pages/admin-portal/AdminLogsPage'
-import { AdminSettingsPage } from '@/pages/admin-portal/AdminSettingsPage'
+import { AdminOverviewPage } from '@/pages/admin-portal/AdminOverviewPage';
+import { AdminModerationPage } from '@/pages/admin-portal/AdminModerationPage';
+import { AdminUsersPage } from '@/pages/admin-portal/AdminUsersPage';
+import { AdminTransactionsPage } from '@/pages/admin-portal/AdminTransactionsPage';
+import { AdminOperationsPage } from '@/pages/admin-portal/AdminOperationsPage';
+import { AdminLogsPage } from '@/pages/admin-portal/AdminLogsPage';
+import { AdminSettingsPage } from '@/pages/admin-portal/AdminSettingsPage';
 
-import { PropertyDetailView } from '@/pages/shared/PropertyDetailView'
-import { EditListingForm } from '@/pages/shared/EditListingForm'
+import { PropertyDetailView } from '@/pages/shared/PropertyDetailView';
+import { EditListingForm } from '@/pages/shared/EditListingForm';
 
 export function AppRouter() {
   return (
     <Routes>
-      {/* ─── PUBLIC PORTAL (Guest + đã đăng nhập) ─── */}
-      <Route element={<PublicLayout />}>
-        <Route index element={<LandingPage />} />
-        <Route path="bat-dong-san" element={<PublicPropertyListPage />} />
-        <Route path="bat-dong-san/:id" element={<PublicPropertyDetailPage />} />
-        <Route path="ban-do" element={<PublicMapPage />} />
-        <Route path="so-sanh" element={<ComparePage />} />
-        <Route path="blog" element={<BlogListPage />} />
-        <Route path="blog/:slug" element={<BlogDetailPage />} />
-        <Route path="gioi-thieu" element={<AboutPage />} />
-        <Route path="lien-he" element={<ContactPage />} />
-      </Route>
+      {/* ─── PUBLIC PORTAL ─── */}
+      <Route index element={<LandingPage />} />
+      <Route path="bat-dong-san" element={<ClientSearchPage />} />
+      <Route path="bat-dong-san/:id" element={<ClientPropertyDetailPage />} />
 
       {/* Auth pages (no chrome) */}
       <Route path="/login" element={<LoginPage />} />
@@ -128,5 +111,5 @@ export function AppRouter() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  )
+  );
 }
