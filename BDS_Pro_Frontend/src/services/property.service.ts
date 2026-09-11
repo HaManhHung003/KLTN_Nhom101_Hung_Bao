@@ -1,6 +1,6 @@
 import { api } from './api';
 import { propertyStorage } from './propertyStorage';
-import type { Property, ListingStatus, PropertyType, TransactionType, LegalStatus } from '../types';
+import type { Property, ListingStatus, PropertyType, TransactionType, LegalStatus, PoiCategory } from '../types';
 
 export interface SearchFilterParams {
   page?: number;
@@ -27,6 +27,17 @@ export interface PaginatedProperties {
     total: number;
     totalPages: number;
   };
+}
+
+/** Điểm tiện ích lân cận trả về từ backend. */
+export interface NearbyPoi {
+  id: string;
+  name: string;
+  category: PoiCategory;
+  rating?: number;
+  latitude: number;
+  longitude: number;
+  distance: number;
 }
 
 export interface CreatePropertyPayload {
@@ -108,6 +119,26 @@ export const propertyService = {
     const customMatch = propertyStorage.getCustomProperties().find((p) => p.id === id);
     if (customMatch) return customMatch;
     return api.get<any, Property>(`/properties/${id}`);
+  },
+
+  /** Lấy danh sách điểm tiện ích lân cận (trường học, bệnh viện, siêu thị) cho 1 BĐS. */
+  async getPois(id: string): Promise<NearbyPoi[]> {
+    try {
+      const res = await api.get<any, NearbyPoi[]>(`/properties/${id}/pois`);
+      return Array.isArray(res) ? res : [];
+    } catch {
+      return [];
+    }
+  },
+
+  /** Bật/tắt yêu thích (cần đăng nhập). */
+  async toggleFavoriteApi(propertyId: string): Promise<{ favorited: boolean }> {
+    return api.post<any, { favorited: boolean }>(`/properties/${propertyId}/favorite`);
+  },
+
+  /** Gửi báo cáo vi phạm (cần đăng nhập). */
+  async reportProperty(propertyId: string, reason: string): Promise<void> {
+    await api.post('/admin/reports', { propertyId, reason });
   },
 
   async getMyProperties(params?: SearchFilterParams): Promise<PaginatedProperties> {

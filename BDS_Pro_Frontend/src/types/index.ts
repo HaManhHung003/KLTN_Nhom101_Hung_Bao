@@ -41,6 +41,8 @@ export interface Property {
   bathrooms?: number
   createdAt: string
   aiScore?: number
+  /** Đánh dấu BĐS đã được người dùng hiện tại lưu yêu thích hay chưa. */
+  isFavorited?: boolean
 }
 
 export interface Appointment {
@@ -142,7 +144,7 @@ export interface UserDeal {
   completedAt?: string
 }
 
-export type PoiCategory = 'school' | 'hospital' | 'supermarket'
+export type PoiCategory = 'school' | 'hospital' | 'supermarket' | 'transport' | 'park' | 'mall'
 
 export interface PointOfInterest {
   id: string
@@ -150,4 +152,57 @@ export interface PointOfInterest {
   category: PoiCategory
   distance: number
   rating?: number
+}
+
+export interface BlogCategory {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  icon: string | null
+  displayOrder: number
+}
+
+export interface BlogPostSummary {
+  id: string
+  title: string
+  slug: string
+  excerpt: string | null
+  coverImage: string | null
+  authorName: string | null
+  category: {
+    id: string
+    name: string
+    slug: string
+  } | null
+  status: string
+  viewCount: number
+  isFeatured: boolean
+  publishedAt: string | null
+  createdAt: string
+}
+
+export interface BlogPost extends BlogPostSummary {
+  content: string
+}
+
+export interface ContactMessage {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  subject: string
+  message: string
+  status: 'new' | 'read' | 'replied' | 'closed'
+  adminNote?: string | null
+  createdAt: string
+}
+
+export interface SiteStats {
+  totalProperties: number
+  totalAgents: number
+  totalUsers: number
+  totalTransactions: number
+  totalBlogPosts: number
+  totalViews: number
 }

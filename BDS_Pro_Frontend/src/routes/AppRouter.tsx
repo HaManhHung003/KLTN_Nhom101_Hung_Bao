@@ -2,11 +2,20 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { ClientLayout } from '@/layouts/ClientLayout'
 import { BrokerLayout } from '@/layouts/BrokerLayout'
 import { AdminLayout } from '@/layouts/AdminLayout'
+import { PublicLayout } from '@/layouts/PublicLayout'
 
 import { LandingPage } from '@/pages/public/LandingPage'
 import { LoginPage } from '@/pages/public/LoginPage'
 import { RegisterPage } from '@/pages/public/RegisterPage'
 import { ForgotPasswordPage } from '@/pages/public/ForgotPasswordPage'
+import { PublicPropertyListPage } from '@/pages/public/PublicPropertyListPage'
+import { PublicPropertyDetailPage } from '@/pages/public/PublicPropertyDetailPage'
+import { PublicMapPage } from '@/pages/public/PublicMapPage'
+import { ComparePage } from '@/pages/public/ComparePage'
+import { BlogListPage } from '@/pages/public/BlogListPage'
+import { BlogDetailPage } from '@/pages/public/BlogDetailPage'
+import { AboutPage } from '@/pages/public/AboutPage'
+import { ContactPage } from '@/pages/public/ContactPage'
 
 // Client pages
 import { ClientHomePage } from '@/pages/client/ClientHomePage'
@@ -43,8 +52,20 @@ import { EditListingForm } from '@/pages/shared/EditListingForm'
 export function AppRouter() {
   return (
     <Routes>
-      {/* Public marketing */}
-      <Route path="/" element={<LandingPage />} />
+      {/* ─── PUBLIC PORTAL (Guest + đã đăng nhập) ─── */}
+      <Route element={<PublicLayout />}>
+        <Route index element={<LandingPage />} />
+        <Route path="bat-dong-san" element={<PublicPropertyListPage />} />
+        <Route path="bat-dong-san/:id" element={<PublicPropertyDetailPage />} />
+        <Route path="ban-do" element={<PublicMapPage />} />
+        <Route path="so-sanh" element={<ComparePage />} />
+        <Route path="blog" element={<BlogListPage />} />
+        <Route path="blog/:slug" element={<BlogDetailPage />} />
+        <Route path="gioi-thieu" element={<AboutPage />} />
+        <Route path="lien-he" element={<ContactPage />} />
+      </Route>
+
+      {/* Auth pages (no chrome) */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />

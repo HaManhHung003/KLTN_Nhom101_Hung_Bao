@@ -55,3 +55,17 @@ export const authService = {
     return userStr ? JSON.parse(userStr) : null;
   },
 };
+
+/** Helpers tiện ích để kiểm tra trạng thái đăng nhập từ localStorage. */
+export const authStorage = {
+  isAuthenticated(): boolean {
+    return Boolean(localStorage.getItem('token'));
+  },
+  getToken(): string | null {
+    return localStorage.getItem('token');
+  },
+  getUser(): User | null {
+    const userStr = localStorage.getItem('user');
+    return userStr ? (JSON.parse(userStr) as User) : null;
+  },
+};

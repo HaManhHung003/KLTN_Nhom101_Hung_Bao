@@ -250,7 +250,7 @@ INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `role`, `avatar
 INSERT INTO `properties` (`id`, `title`, `type`, `transaction_type`, `price`, `area`, `legal_status`, `address`, `district`, `city`, `latitude`, `longitude`, `status`, `owner_id`, `owner_name`, `view_count`, `favorite_count`, `description`, `bedrooms`, `bathrooms`, `ai_score`, `created_at`) VALUES
 ('p1', 'Căn hộ cao cấp Vinhomes Central Park – View sông Sài Gòn', 'apartment', 'rent', 25000000.00, 85.00, 'so_hong', '208 Nguyễn Hữu Cảnh, Bình Thạnh', 'Bình Thạnh', 'TP. Hồ Chí Minh', 10.7951, 106.7215, 'active', 'u2', 'Trần Văn Bảo', 1240, 89, 'Căn hộ 2PN full nội thất cao cấp, view sông thoáng mát. Tiện ích đầy đủ trong khu đô thị Vinhomes Central Park.', 2, 2, 92, '2026-08-01 10:00:00'),
 ('p2', 'Nhà phố 4 tầng mặt tiền Nguyễn Thị Thập, Quận 7', 'house', 'sale', 12500000000.00, 120.00, 'so_hong', '45 Nguyễn Thị Thập, Quận 7', 'Quận 7', 'TP. Hồ Chí Minh', 10.7340, 106.7210, 'active', 'u2', 'Trần Văn Bảo', 856, 45, 'Nhà phố kinh doanh, mặt tiền 5m, thiết kế hiện đại, phù hợp văn phòng hoặc ở kết hợp kinh doanh.', 4, 3, 88, '2026-07-28 15:30:00'),
-('p3', 'Đất nền dự án Aqua City – Sổ hồng riêng', 'land', 'sale', 3200000000.00, 100.00, 'so_hong', 'Khu A, Aqua City, Long An', 'Long An', 'Long An', 10.6540, 106.5120, 'active', 'u4', 'Phạm Đức Hùng', 432, 28, 'Lô đất view sông, hạ tầng hoàn thiện, thanh khoản tốt, phù hợp đầu tư dài hạn.', 0, 0, 75, '2026-07-20 09:00:00'),
+-- ('p3', 'Đất nền dự án Aqua City – Sổ hồng riêng' ...) - removed: đã xóa theo yêu cầu,
 ('p4', 'Văn phòng cho thuê Landmark 81 – 150m² view panorama', 'office', 'rent', 85000000.00, 150.00, 'hop_dong', 'Landmark 81, Vinhomes Central Park', 'Bình Thạnh', 'TP. Hồ Chí Minh', 10.7955, 106.7220, 'active', 'u2', 'Trần Văn Bảo', 678, 34, 'Văn phòng hạng A, view toàn cảnh thành phố, nội thất sẵn sàng vào làm việc.', 0, 2, 85, '2026-07-15 11:00:00'),
 ('p5', 'Biệt thự liền kề Vinhomes Ocean Park – Hà Nội', 'villa', 'sale', 18500000000.00, 200.00, 'so_hong', 'P5-12, Vinhomes Ocean Park, Gia Lâm', 'Gia Lâm', 'Hà Nội', 21.0120, 105.9320, 'pending', 'u4', 'Phạm Đức Hùng', 120, 10, 'Biệt thự 3 tầng, thiết kế tân cổ điển, sân vườn rộng, khu an ninh cao cấp.', 5, 4, 90, '2026-08-10 16:20:00'),
 ('p6', 'Studio Masteri Thảo Điền – Full nội thất gần Metro', 'apartment', 'rent', 12000000.00, 45.00, 'so_do', '159 Xa lộ Hà Nội, Thảo Điền', 'Quận 2', 'TP. Hồ Chí Minh', 10.8030, 106.7380, 'active', 'u2', 'Trần Văn Bảo', 945, 67, 'Studio hiện đại, phù hợp expat và chuyên gia trẻ, gần tuyến Metro số 1 và trung tâm.', 1, 1, 94, '2026-08-05 08:30:00');
@@ -262,7 +262,7 @@ INSERT INTO `property_images` (`id`, `property_id`, `image_url`, `is_cover`, `di
 ('img3', 'p1', 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800', 0, 3),
 ('img4', 'p2', 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800', 1, 1),
 ('img5', 'p2', 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800', 0, 2),
-('img6', 'p3', 'https://images.unsplash.com/photo-1500382017468-904fc875a87f?w=800', 1, 1),
+-- ('img6', 'p3', 'https://images.unsplash.com/photo-1500382017468-904fc875a87f?w=800', 1, 1),  -- removed: liên quan đến p3 đã xóa
 ('img7', 'p4', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800', 1, 1),
 ('img8', 'p5', 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800', 1, 1),
 ('img9', 'p6', 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800', 1, 1);
@@ -321,7 +321,7 @@ INSERT INTO `transactions` (`id`, `property_id`, `property_title`, `property_ima
 
 -- 10. Reports
 INSERT INTO `reports` (`id`, `reporter_id`, `reporter_name`, `property_id`, `property_title`, `reason`, `status`, `created_at`) VALUES
-('r1', 'u1', 'Nguyễn Minh Anh', 'p3', 'Đất nền dự án Aqua City', 'Thông tin giấy tờ pháp lý cần xác minh thêm', 'pending', '2026-08-14 15:00:00');
+-- ('r1', 'u1', 'Nguyễn Minh Anh', 'p3', 'Đất nền dự án Aqua City', 'Thông tin giấy tờ pháp lý cần xác minh thêm', 'pending', '2026-08-14 15:00:00');  -- removed: liên quan đến p3 đã xóa
 
 -- 11. Audit Logs
 INSERT INTO `audit_logs` (`id`, `actor_id`, `actor`, `actor_role`, `action`, `target`, `created_at`) VALUES

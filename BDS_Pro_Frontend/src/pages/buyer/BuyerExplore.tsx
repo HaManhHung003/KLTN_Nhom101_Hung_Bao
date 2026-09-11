@@ -1,18 +1,18 @@
-import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { Tabs, TabPanel } from '@/components/common/Tabs'
-import { MarketSearch } from '@/pages/shared/MarketSearch'
-import { MapView } from '@/pages/shared/MapView'
+import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Tabs, TabPanel } from '@/components/common/Tabs';
+import { MarketSearch } from '@/pages/shared/MarketSearch';
+import { MapView } from '@/pages/shared/MapView';
 
 export function BuyerExplore() {
-  const [params, setParams] = useSearchParams()
-  const tab = params.get('tab') === 'map' ? 'map' : 'list'
-  const [active, setActive] = useState(tab)
+  const [params, setParams] = useSearchParams();
+  const tab = params.get('tab') === 'map' ? 'map' : 'list';
+  const [active, setActive] = useState(tab);
 
   const handleTab = (id: string) => {
-    setActive(id)
-    setParams(id === 'map' ? { tab: 'map' } : {})
-  }
+    setActive(id);
+    setParams(id === 'map' ? { tab: 'map' } : {});
+  };
 
   return (
     <div className="space-y-5">
@@ -34,15 +34,15 @@ export function BuyerExplore() {
 
       <TabPanel active={active} id="list">
         <MarketSearch
-          basePath="/buyer"
+          basePath="/client"
           title=""
           description=""
           showFavorite
         />
       </TabPanel>
       <TabPanel active={active} id="map">
-        <MapView basePath="/buyer" title="" description="" showFavorite />
+        <MapView basePath="/client" title="" description="" showFavorite />
       </TabPanel>
     </div>
-  )
+  );
 }

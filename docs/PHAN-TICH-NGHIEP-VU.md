@@ -6,9 +6,10 @@
 | **Tên đề tài** | Xây dựng hệ thống mua bán và cho thuê bất động sản |
 | **Nền tảng** | Web App & Mobile App (đa nền tảng) |
 | **Kiến trúc dự kiến** | Microservices phân tán |
-| **Phiên bản tài liệu** | 1.1 |
+| **Phiên bản tài liệu** | 2.0 |
 | **Ngày lập** | 12/08/2026 |
 | **Cập nhật IA giao diện** | 15/08/2026 |
+| **Cập nhật phân tích 4 role + chức năng Guest** | 04/09/2026 |
 
 ---
 
@@ -154,9 +155,74 @@ Thị trường bất động sản Việt Nam phát triển mạnh nhưng quy t
               └──────────────────────────────┘
 ```
 
-### 4.2. Ba nhóm đối tượng chính (theo giai đoạn khảo sát)
+### 4.2. Hệ thống 4 vai trò (Role Model v2.0)
 
-#### A. Người tìm BĐS (Khách hàng cuối)
+Hệ thống phân chia **4 vai trò người dùng rõ ràng**, mỗi vai trò có quyền hạn, giao diện và trải nghiệm riêng:
+
+| Mã | Vai trò | Tên hiển thị | Mô tả | Quyền truy cập |
+|----|---------|--------------|-------|----------------|
+| **R0** | `guest` | Khách vãng lai | Người dùng chưa đăng nhập, truy cập nội dung công khai | Xem: Landing, danh sách BĐS, chi tiết, bản đồ, blog, so sánh, About. Bị chặn khi tương tác (lưu tin, đặt lịch, chat, đặt cọc) |
+| **R1** | `user` (buyer) | Người tìm BĐS | Khách hàng đã đăng ký, có nhu cầu mua/thuê | Toàn quyền của guest + lưu yêu thích, đặt lịch xem, chat với môi giới, đặt cọc, AI Assistant |
+| **R2** | `host` (agent) | Môi giới / Chủ BĐS | Người đăng tin BĐS, quản lý khách hàng và lịch hẹn | Toàn quyền của user + đăng/sửa/xóa tin, CRM khách hàng, lịch hẹn, dashboard hiệu suất |
+| **R3** | `admin` | Quản trị viên | Vận hành nền tảng, kiểm duyệt, cấu hình | Toàn quyền kiểm duyệt tin, quản lý user, báo cáo, cài đặt hệ thống |
+
+### 4.3. Sơ đồ phân cấp quyền (Permission Matrix)
+
+```
+                ┌─────────────────────────────────────────┐
+                │           ADMIN (Quản trị viên)         │
+                │   Kiểm duyệt · Quản lý user · Báo cáo   │
+                └─────────────────┬───────────────────────┘
+                                  │ Cấp quyền
+                ┌─────────────────▼───────────────────────┐
+                │       HOST (Môi giới/Chủ BĐS)           │
+                │   Đăng tin · CRM · Lịch hẹn · Analytics │
+                └─────────────────┬───────────────────────┘
+                                  │ Tương tác
+                ┌─────────────────▼───────────────────────┐
+                │       USER (Người tìm/thuê BĐS)        │
+                │   Tìm kiếm · Lưu tin · Chat · Đặt cọc  │
+                └─────────────────┬───────────────────────┘
+                                  │ Đăng ký nâng cấp
+                ┌─────────────────▼───────────────────────┐
+                │       GUEST (Khách vãng lai)            │
+                │   Xem công khai · So sánh · Blog · About │
+                └─────────────────────────────────────────┘
+```
+
+### 4.4. Bốn nhóm đối tượng chính
+
+#### A. Guest — Khách vãng lai (chưa đăng nhập)
+
+**Đặc điểm:** Người truy cập lần đầu, đang khám phá nền tảng; chưa có tài khoản hoặc chưa đăng nhập.
+
+**Mục tiêu chính:** Tìm hiểu nền tảng, xem tin đăng, đánh giá chất lượng trước khi quyết định đăng ký.
+
+**Quyền hạn cụ thể:**
+| Chức năng | Truy cập? | Ghi chú |
+|-----------|:---------:|---------|
+| Xem Landing Page | ✅ | Toàn bộ |
+| Xem danh sách BĐS công khai | ✅ | Có filter cơ bản |
+| Xem chi tiết BĐS | ✅ | Thông tin đầy đủ |
+| Tìm trên bản đồ | ✅ | Marker + cluster |
+| So sánh BĐS | ✅ | Tối đa 3 tin |
+| Đọc Blog/Kiến thức | ✅ | Tin tức thị trường, hướng dẫn |
+| Xem About/Giới thiệu | ✅ | Sứ mệnh, đội ngũ, đối tác |
+| Liên hệ tư vấn | ✅ | Form liên hệ, email |
+| Lưu tin yêu thích | ❌ | → Bắt buộc đăng nhập |
+| Đặt lịch xem | ❌ | → Bắt buộc đăng nhập |
+| Chat môi giới | ❌ | → Bắt buộc đăng nhập |
+| Chatbot AI | ⚠️ | Xem demo, đăng nhập để dùng đầy đủ |
+| Đặt cọc / Thanh toán | ❌ | → Bắt buộc đăng nhập |
+| Đánh giá BĐS | ❌ | → Bắt buộc đăng nhập |
+
+**Kỳ vọng:**
+- Trải nghiệm mượt khi xem thông tin (không bị giật popup đăng nhập ngay)
+- Khi click thao tác cần đăng nhập → hiện popup thân thiện với 2 lựa chọn: Đăng nhập / Đăng ký
+- Tin đăng hiển thị đầy đủ thông tin, có dấu hiệu "Verified" từ admin
+- CTA đăng ký rõ ràng, nhiều điểm chạm trong suốt hành trình
+
+#### B. User — Người tìm BĐS (Khách hàng cuối)
 
 **Đặc điểm:** Người có nhu cầu mua hoặc thuê; ưu tiên tốc độ, độ tin cậy thông tin, trải nghiệm mobile.
 
@@ -174,7 +240,7 @@ Thị trường bất động sản Việt Nam phát triển mạnh nhưng quy t
 
 ---
 
-#### B. Môi giới / Chủ BĐS (Người đăng tin)
+#### C. Host — Môi giới / Chủ BĐS (Người đăng tin)
 
 **Đặc điểm:** Cá nhân hoặc đại diện sàn; cần quản lý nhiều tin, theo dõi lead, tối ưu chuyển đổi.
 
@@ -192,7 +258,7 @@ Thị trường bất động sản Việt Nam phát triển mạnh nhưng quy t
 
 ---
 
-#### C. Quản trị viên (Admin / Sàn BĐS)
+#### D. Admin — Quản trị viên (Admin / Sàn BĐS)
 
 **Đặc điểm:** Vận hành nền tảng, đảm bảo chất lượng nội dung và an toàn giao dịch.
 
@@ -212,26 +278,36 @@ Thị trường bất động sản Việt Nam phát triển mạnh nhưng quy t
 
 ## 5. Phân tích nghiệp vụ theo nhóm đối tượng
 
-### 5.1. Ma trận chức năng – Vai trò
+### 5.1. Ma trận chức năng – Vai trò (cập nhật 4 role)
 
-| Chức năng | Người tìm BĐS | Môi giới/Chủ BĐS | Quản trị viên |
-|-----------|:-------------:|:----------------:|:-------------:|
-| Đăng ký / Đăng nhập | ✓ | ✓ | ✓ |
-| Tìm kiếm & lọc BĐS | ✓ | ✓ (xem thị trường) | ✓ |
-| Bản đồ tương tác | ✓ | ✓ | ✓ |
-| Xem chi tiết tin đăng | ✓ | ✓ | ✓ |
-| Lưu / Yêu thích | ✓ | — | — |
-| So sánh BĐS | ✓ | — | — |
-| Chat real-time | ✓ | ✓ | ✓ (giám sát) |
-| Chatbot AI | ✓ | ✓ | — |
-| Đặt lịch xem BĐS | ✓ | ✓ (xác nhận) | ✓ (xem) |
-| Đặt cọc / Thanh toán | ✓ | ✓ (nhận thông báo) | ✓ (giám sát) |
-| Đăng / Sửa tin BĐS | — | ✓ | ✓ |
-| Dashboard hiệu suất | — | ✓ | ✓ |
-| Kiểm duyệt tin | — | — | ✓ |
-| Quản lý người dùng | — | — | ✓ |
-| Báo cáo & Thống kê | — | ✓ (cá nhân) | ✓ (toàn hệ thống) |
-| Push Notification | ✓ | ✓ | ✓ |
+| Chức năng | Guest | User | Host | Admin |
+|-----------|:-----:|:----:|:----:|:-----:|
+| Xem Landing | ✓ | ✓ | ✓ | ✓ |
+| Xem danh sách BĐS công khai | ✓ | ✓ | ✓ | ✓ |
+| Xem chi tiết BĐS | ✓ | ✓ | ✓ | ✓ |
+| Tìm kiếm bản đồ | ✓ | ✓ | ✓ | ✓ |
+| So sánh BĐS (tối đa 3) | ✓ | ✓ | — | — |
+| Đọc Blog / Tin tức | ✓ | ✓ | ✓ | ✓ |
+| Xem About / Giới thiệu | ✓ | ✓ | ✓ | ✓ |
+| Liên hệ tư vấn | ✓ | ✓ | ✓ | ✓ |
+| Đăng ký / Đăng nhập | ✓ | — | — | — |
+| Đăng ký nâng cấp lên User | ✓ | — | — | — |
+| Đăng ký nâng cấp lên Host | ✓ | — | — | — |
+| Lưu yêu thích | — | ✓ | — | — |
+| Đặt lịch xem BĐS | — | ✓ | ✓ (xác nhận) | ✓ (xem) |
+| Chat real-time với Host | — | ✓ | ✓ | ✓ (giám sát) |
+| Chatbot AI gợi ý | — | ✓ | ✓ | — |
+| Đặt cọc / Thanh toán | — | ✓ | ✓ (nhận TB) | ✓ (giám sát) |
+| Đánh giá & review BĐS | — | ✓ | ✓ | ✓ |
+| Đăng / Sửa tin BĐS | — | — | ✓ | ✓ |
+| Quản lý khách hàng (CRM) | — | — | ✓ | ✓ |
+| Dashboard hiệu suất | — | — | ✓ | ✓ |
+| Kiểm duyệt tin | — | — | — | ✓ |
+| Quản lý người dùng | — | — | — | ✓ |
+| Quản lý Blog / Tin tức | — | — | — | ✓ |
+| Báo cáo & Thống kê tổng hệ thống | — | — | — | ✓ |
+| Cấu hình hệ thống | — | — | — | ✓ |
+| Push Notification | — | ✓ | ✓ | ✓ |
 
 ### 5.2. Hành trình người dùng (User Journey)
 
@@ -298,7 +374,42 @@ Hệ thống Web demo được tổ chức thành **3 portal độc lập**, m�
 | `/admin/logs` | Nhật ký | Audit log |
 | `/admin/settings` | Cài đặt | Chính sách nền tảng |
 
-#### D. Hệ thiết kế thống nhất (Design System)
+#### D. Portal Public cho Guest (`/*`) — Marketing & Khám phá
+
+**Nguyên tắc:** Guest có thể xem toàn bộ nội dung công khai; mọi thao tác cần đăng nhập sẽ mở popup thân thiện.
+
+| Route | Màn hình | Nghiệp vụ | Hành vi Guest |
+|-------|----------|-----------|----------------|
+| `/` | Landing Page | Hero, tin nổi bật, thống kê, testimonials | Xem tự do |
+| `/bat-dong-san` | Danh sách BĐS công khai | Grid + filter cơ bản (loại, giao dịch, khu vực, giá) | Xem tự do |
+| `/ban-do` | Bản đồ tìm kiếm | Bản đồ tương tác với marker BĐS | Xem tự do, click marker → chi tiết |
+| `/bat-dong-san/:id` | Chi tiết BĐS (guest view) | Gallery, thông tin, POI, mô tả môi giới | Xem tự do, CTA chat/lưu/đặt lịch → popup đăng nhập |
+| `/so-sanh` | So sánh BĐS | Bảng so sánh tối đa 3 BĐS | Xem tự do (lưu so sánh localStorage) |
+| `/blog` | Tin tức / Kiến thức | Danh sách bài viết + filter chuyên mục | Xem tự do |
+| `/blog/:slug` | Chi tiết bài viết | Nội dung, tác giả, bài liên quan | Xem tự do |
+| `/gioi-thieu` | Giới thiệu | Sứ mệnh, tầm nhìn, đội ngũ, đối tác, lộ trình | Xem tự do |
+| `/lien-he` | Liên hệ | Form liên hệ, hotline, email, địa chỉ văn phòng | Xem tự do, gửi form được |
+| `/login` | Đăng nhập | Form đăng nhập email + mật khẩu | (chuyển hướng sau khi login) |
+| `/register` | Đăng ký | Wizard 3 bước + OTP email | (chuyển hướng sau khi đăng ký) |
+| `/forgot-password` | Quên mật khẩu | OTP email + đặt lại mật khẩu | (chuyển hướng sau khi xong) |
+
+**Thiết kế Header Public:**
+- Sticky, gradient đậm (`brand-700 → teal-700`), bám theo trang
+- Logo `BDS Pro` + tagline
+- Điều hướng: Trang chủ · BĐS · Bản đồ · Blog · So sánh · Giới thiệu · Liên hệ
+- Khu vực tài khoản: 
+  - Guest thấy nút `[Đăng nhập]` (viền) + `[Đăng ký miễn phí]` (primary)
+  - User/Host/Admin thấy PortalHeaderActions (đã có)
+
+**Footer:** Logo, liên kết nhanh, mạng xã hội, bản quyền, hotline hỗ trợ.
+
+**Popup "Đăng nhập để tiếp tục"** (`<LoginRequiredModal>`):
+- Hiện khi guest click: Lưu tin, Đặt lịch, Chat, Đặt cọc, Đánh giá
+- Có 2 lựa chọn: `Đăng nhập` (chuyển `/login`) hoặc `Đăng ký miễn phí` (chuyển `/register`)
+- Có nút "Đóng" (X) cho phép thoát
+- Không hiện khi guest chỉ xem
+
+#### E. Hệ thiết kế thống nhất (Design System)
 
 Ba portal dùng **một bộ visual language**:
 
@@ -317,9 +428,23 @@ Ba portal dùng **một bộ visual language**:
 #### E. Luồng demo đề tài (3 phút / vai trò)
 
 ```
-Người tìm BĐS:  Trang chủ → Tìm kiếm bản đồ → Chi tiết → Chat → Hoạt động (Lịch + Cọc)
-Môi giới:       Tổng quan (Việc cần làm) → Khách hàng → Lịch hẹn → Phân tích
-Quản trị:       Dashboard → Kiểm duyệt → Vận hành (Chat + Báo cáo)
+Guest (chưa đăng nhập):  Landing → Danh sách BĐS → Chi tiết → So sánh → Blog → Đăng ký
+Người tìm BĐS (User):   Trang chủ → Tìm kiếm bản đồ → Chi tiết → Chat → Hoạt động (Lịch + Cọc)
+Môi giới (Host):         Tổng quan (Việc cần làm) → Khách hàng → Lịch hẹn → Phân tích
+Quản trị (Admin):        Dashboard → Kiểm duyệt → Vận hành (Chat + Báo cáo)
+```
+
+#### F. Hành trình Guest → User (Conversion Funnel)
+
+```
+Guest truy cập Landing
+  → Khám phá tin nổi bật (Hero carousel)
+  → Click "Xem chi tiết" → Đọc mô tả BĐS (CTA "Lưu tin" / "Đặt lịch")
+  → Click CTA → Popup "Đăng nhập để tiếp tục"
+  → Chọn "Đăng ký miễn phí" → Wizard 3 bước + OTP
+  → Trở thành User, lưu/đặt lịch/chat thành công
+
+(Có thể đăng ký với 2 lựa chọn vai trò: User — người tìm BĐS, hoặc Host — môi giới/chủ BĐS)
 ```
 
 ---
@@ -435,13 +560,29 @@ flowchart TD
 
 | ID | Yêu cầu | Ưu tiên |
 |----|---------|---------|
-| FR-U01 | Đăng ký tài khoản (email/SĐT, OAuth Google/Facebook) | Cao |
+| FR-U01 | Đăng ký tài khoản (email/SĐT, OAuth Google/Facebook), chọn vai trò **User** hoặc **Host** | Cao |
 | FR-U02 | Đăng nhập, quên mật khẩu, xác thực OTP | Cao |
-| FR-U03 | Phân quyền theo vai trò: Khách, Môi giới, Chủ BĐS, Admin | Cao |
+| FR-U03 | Phân quyền 4 vai trò: Guest, User (buyer), Host (agent), Admin | Cao |
 | FR-U04 | Hồ sơ cá nhân: avatar, thông tin liên hệ, lịch sử giao dịch | Trung bình |
-| FR-U05 | Xác minh danh tính môi giới (upload CMND/CCCD, giấy phép) | Trung bình |
+| FR-U05 | Xác minh danh tính Host (upload CMND/CCCD, giấy phép) | Trung bình |
+| FR-U06 | **Phân biệt rõ Guest — popup "Đăng nhập để tiếp tục" khi tương tác** | Cao |
 
-### 7.2. Module Tin đăng BĐS
+### 7.2. Module Trang Public / Guest
+
+| ID | Yêu cầu | Ưu tiên |
+|----|---------|---------|
+| FR-PUB01 | Landing Page: hero, tin nổi bật, thống kê, testimonials, CTA đăng ký | Cao |
+| FR-PUB02 | Danh sách BĐS công khai với filter cơ bản (loại, giao dịch, khu vực, giá) | Cao |
+| FR-PUB03 | Tìm kiếm BĐS trên bản đồ tương tác (có cluster marker) | Cao |
+| FR-PUB04 | Trang chi tiết BĐS cho Guest (gallery, mô tả, tiện ích, POI) | Cao |
+| FR-PUB05 | So sánh BĐS tối đa 3 tin (lưu localStorage) | Trung bình |
+| FR-PUB06 | Blog / Tin tức / Kiến thức BĐS (danh sách + chi tiết bài viết) | Trung bình |
+| FR-PUB07 | Trang Giới thiệu (sứ mệnh, đội ngũ, đối tác) | Trung bình |
+| FR-PUB08 | Trang Liên hệ (form, hotline, địa chỉ) | Trung bình |
+| FR-PUB09 | Header & Footer public với điều hướng đầy đủ | Cao |
+| FR-PUB10 | Modal "Đăng nhập để tiếp tục" khi Guest click thao tác cần auth | Cao |
+
+### 7.3. Module Tin đăng BĐS
 
 | ID | Yêu cầu | Ưu tiên |
 |----|---------|---------|
@@ -452,7 +593,7 @@ flowchart TD
 | FR-L05 | Quản lý trạng thái tin (nháp, chờ duyệt, hiển thị, đã giao dịch) | Cao |
 | FR-L06 | Gia hạn / Ẩn / Xóa tin | Trung bình |
 
-### 7.3. Module Tìm kiếm & Bản đồ
+### 7.4. Module Tìm kiếm & Bản đồ
 
 | ID | Yêu cầu | Ưu tiên |
 |----|---------|---------|
@@ -464,7 +605,7 @@ flowchart TD
 | FR-S06 | Lưu yêu thích, so sánh tối đa N BĐS | Trung bình |
 | FR-S07 | Lịch sử tìm kiếm gần đây | Thấp |
 
-### 7.4. Module Lịch hẹn xem BĐS
+### 7.5. Module Lịch hẹn xem BĐS
 
 | ID | Yêu cầu | Ưu tiên |
 |----|---------|---------|
@@ -474,7 +615,7 @@ flowchart TD
 | FR-A04 | Nhắc lịch tự động qua Push / Email | Cao |
 | FR-A05 | Đánh giá sau buổi xem (rating & review) | Trung bình |
 
-### 7.5. Module Chat & Chatbot AI
+### 7.6. Module Chat & Chatbot AI
 
 | ID | Yêu cầu | Ưu tiên |
 |----|---------|---------|
@@ -485,7 +626,7 @@ flowchart TD
 | FR-C05 | Chatbot gợi ý danh sách BĐS phù hợp | Cao |
 | FR-C06 | Chuyển tiếp từ chatbot sang môi giới thật | Trung bình |
 
-### 7.6. Module Thanh toán & Đặt cọc
+### 7.7. Module Thanh toán & Đặt cọc
 
 | ID | Yêu cầu | Ưu tiên |
 |----|---------|---------|
@@ -494,17 +635,26 @@ flowchart TD
 | FR-P03 | Lịch sử giao dịch, biên lai điện tử | Cao |
 | FR-P04 | Quy trình hoàn tiền / khiếu nại | Trung bình |
 
-### 7.7. Module Dashboard & Báo cáo
+### 7.8. Module Dashboard & Báo cáo
 
 | ID | Yêu cầu | Ưu tiên |
 |----|---------|---------|
-| FR-D01 | Dashboard môi giới: lượt xem, click, lead, conversion | Cao |
-| FR-D02 | Dashboard admin: tổng tin, người dùng, doanh thu, giao dịch | Cao |
+| FR-D01 | Dashboard Host: lượt xem, click, lead, conversion | Cao |
+| FR-D02 | Dashboard Admin: tổng tin, người dùng, doanh thu, giao dịch | Cao |
 | FR-D03 | Biểu đồ xu hướng theo thời gian | Trung bình |
 | FR-D04 | Xuất báo cáo PDF/Excel | Trung bình |
 | FR-D05 | Top tin hiệu quả / khu vực hot | Trung bình |
 
-### 7.8. Module Quản trị hệ thống
+### 7.9. Module Blog / Tin tức / Kiến thức BĐS
+
+| ID | Yêu cầu | Ưu tiên |
+|----|---------|---------|
+| FR-B01 | CRUD bài viết Blog (Admin đăng, sửa, xóa, duyệt) | Trung bình |
+| FR-B02 | Danh sách bài viết công khai, lọc theo chuyên mục | Trung bình |
+| FR-B03 | Chi tiết bài viết với SEO meta, bài viết liên quan | Trung bình |
+| FR-B04 | Chuyên mục: Thị trường, Hướng dẫn mua/bán/thuê, Pháp lý, Tài chính | Trung bình |
+
+### 7.10. Module Quản trị hệ thống
 
 | ID | Yêu cầu | Ưu tiên |
 |----|---------|---------|
@@ -513,6 +663,7 @@ flowchart TD
 | FR-AD03 | Xử lý báo cáo vi phạm / khiếu nại | Trung bình |
 | FR-AD04 | Cấu hình hệ thống: phí, thời hạn tin, template thông báo | Trung bình |
 | FR-AD05 | Audit log hoạt động quan trọng | Trung bình |
+| FR-AD06 | Quản lý Blog / Bài viết | Trung bình |
 
 ---
 
@@ -626,7 +777,7 @@ flowchart TD
 | Service | Trách nhiệm |
 |---------|-------------|
 | API Gateway | Routing, auth, rate limit |
-| User Service | Đăng ký, profile, phân quyền |
+| User Service | Đăng ký, profile, phân quyền (4 role) |
 | Listing Service | CRUD tin BĐS, tìm kiếm |
 | Geo/Map Service | Tọa độ, bán kính, POI |
 | Appointment Service | Lịch hẹn xem nhà |
@@ -636,6 +787,8 @@ flowchart TD
 | AI Service | Chatbot, gợi ý BĐS |
 | Analytics Service | Dashboard, báo cáo |
 | Admin Service | Kiểm duyệt, cấu hình |
+| Blog Service *(mới v2.0)* | CRUD bài viết, chuyên mục |
+| Public Service *(mới v2.0)* | Landing, About, Liên hệ, So sánh |
 
 ---
 
@@ -645,12 +798,12 @@ flowchart TD
 
 | Sprint | Phạm vi gợi ý |
 |--------|---------------|
-| Sprint 1–2 | Auth, User profile, Listing CRUD cơ bản |
-| Sprint 3–4 | Tìm kiếm, bản đồ, lọc |
+| Sprint 1–2 | Auth (4 role), User profile, **Portal Public (Landing, Listings, Blog, About, Liên hệ, So sánh)**, Listing CRUD cơ bản |
+| Sprint 3–4 | Tìm kiếm, bản đồ, lọc (cho cả User & Guest) |
 | Sprint 5–6 | Chat real-time, Notification |
 | Sprint 7–8 | Lịch hẹn, Payment integration |
 | Sprint 9–10 | Chatbot AI, Dashboard |
-| Sprint 11–12 | Admin, kiểm duyệt, polish UX |
+| Sprint 11–12 | Admin, kiểm duyệt, **quản lý Blog**, polish UX |
 
 ---
 
@@ -754,3 +907,567 @@ Phân tích nghiệp vụ xác định **7 module chức năng chính**, **5 quy
 ---
 
 *Tài liệu thuộc Giai đoạn 1 – Phân tích nghiệp vụ & Khảo sát trải nghiệm người dùng.*
+
+---
+
+# PHỤ LỤC MỞ RỘNG — v3.0: Phân tích chức năng & triển khai 4 Role
+
+> **Phần bổ sung tháng 9/2026.** Sau khi hoàn thành module Đăng ký / Đăng nhập (FR-U01, FR-U02), nhóm tập trung xây dựng **Portal Public dành cho Guest** và chuẩn hoá 4 vai trò (guest / user / host / admin) trên Web. Mục tiêu: khách vãng lai có thể khám phá hệ thống một cách trọn vẹn trước khi quyết định đăng ký.
+
+## Mục lục phụ lục
+
+14. [Tổng quan 4 Role & vòng đời khách hàng](#14-tổng-quan-4-role--vòng-đời-khách-hàng)
+15. [Ma trận chức năng chi tiết theo Role](#15-ma-trận-chức-năng-chi-tiết-theo-role)
+16. [Phân tích chức năng Guest (Portal Public)](#16-phân-tích-chức-năng-guest-portal-public)
+17. [Use case chi tiết - Guest](#17-use-case-chi-tiết---guest)
+18. [Phân tích dữ liệu mới (Blog, Liên hệ, So sánh)](#18-phân-tích-dữ-liệu-mới-blog-liên-hệ-so-sánh)
+19. [Thiết kế UI/UX - Portal Public](#19-thiết-kế-uiux---portal-public)
+20. [API Endpoint mới cho Portal Public](#20-api-endpoint-mới-cho-portal-public)
+21. [Lộ trình triển khai Sprint tiếp theo](#21-lộ-trình-triển-khai-sprint-tiếp-theo)
+
+---
+
+## 14. Tổng quan 4 Role & vòng đời khách hàng
+
+### 14.1. Mô hình 4 vai trò (đã thống nhất)
+
+| Role | Tên hiển thị | Mô tả ngắn | Quyền chính |
+|------|--------------|-----------|-------------|
+| **guest** | Khách vãng lai | Người chưa đăng nhập | Xem nội dung công khai, bị chặn khi tương tác |
+| **user** | Người tìm BĐS | Buyer - khách hàng cuối | Tìm kiếm, lưu tin, đặt lịch, chat, đặt cọc |
+| **host** | Môi giới / Chủ BĐS | Agent - người đăng tin | Đăng tin, CRM khách hàng, quản lý lịch hẹn, dashboard |
+| **admin** | Quản trị viên | Admin - vận hành nền tảng | Kiểm duyệt, quản lý user, blog, thống kê hệ thống |
+
+### 14.2. Vòng đời khách hàng (Customer Journey)
+
+```
+                ┌────────────────────────────┐
+                │   Guest (Khám phá tự do)    │
+                │  - Landing / BĐS / Blog    │
+                │  - Click CTA → Popup Login │
+                └──────────────┬─────────────┘
+                               │ Đăng ký (User hoặc Host)
+                ┌──────────────▼─────────────┐
+                │   User / Host               │
+                │  - Dùng full tính năng     │
+                │  - Tương tác cộng đồng     │
+                └──────────────┬─────────────┘
+                               │ Nâng cấp gói / Mở rộng
+                ┌──────────────▼─────────────┐
+                │   Admin (do hệ thống cấp) │
+                │  - Quản trị & vận hành     │
+                └────────────────────────────┘
+```
+
+### 14.3. Quy tắc bảo mật 4 Role
+
+| Quy tắc | Mô tả |
+|---------|-------|
+| **JWT + Role Guard** | Mỗi API được gắn `@Roles(...)`, controller kiểm tra `role ∈ {buyer, agent, admin}` |
+| **Ẩn danh Public** | Các API `/properties`, `/properties/featured`, `/blog`, `/pois`, `/public/stats` không yêu cầu token |
+| **Hạn chế tương tác Guest** | Guest có thể xem đầy đủ thông tin, nhưng các hành động ghi (POST/PUT/DELETE) sẽ trả 401 với thông điệp thân thiện, FE hiển thị LoginRequiredModal |
+| **Phân quyền Host vs User** | Host chỉ được sửa/xoá tin của mình; Admin có quyền tuyệt đối |
+| **Admin tách biệt** | Admin route tách hẳn khỏi User/Host route ở cả FE lẫn BE |
+
+---
+
+## 15. Ma trận chức năng chi tiết theo Role
+
+### 15.1. Ma trận FR (Yêu cầu chức năng)
+
+| ID | Module / Tính năng | Guest | User | Host | Admin |
+|----|---------------------|:-----:|:----:|:----:|:-----:|
+| **FR-AUTH** | | | | | |
+| FR-U01 | Đăng ký tài khoản (User/Host) | ✓ | — | — | — |
+| FR-U02 | Đăng nhập / Đăng xuất / Quên MK | ✓ | ✓ | ✓ | ✓ |
+| FR-U06 | Phân biệt Guest - popup Login | ✓ | — | — | — |
+| **FR-PUB (Portal Public / Guest)** | | | | | |
+| FR-PUB01 | Landing Page với hero, tin nổi bật, CTA | ✓ | ✓ | ✓ | ✓ |
+| FR-PUB02 | Danh sách BĐS công khai + filter cơ bản | ✓ | ✓ | ✓ | ✓ |
+| FR-PUB03 | Tìm kiếm BĐS trên bản đồ | ✓ | ✓ | ✓ | ✓ |
+| FR-PUB04 | Chi tiết BĐS (gallery, mô tả, tiện ích, POI) | ✓ | ✓ | ✓ | ✓ |
+| FR-PUB05 | So sánh BĐS (tối đa 3, lưu localStorage) | ✓ | ✓ | ✓ | ✓ |
+| FR-PUB06 | Blog / Tin tức (danh sách + chi tiết) | ✓ | ✓ | ✓ | ✓ |
+| FR-PUB07 | Trang Giới thiệu / About | ✓ | ✓ | ✓ | ✓ |
+| FR-PUB08 | Trang Liên hệ (form + thông tin công ty) | ✓ | ✓ | ✓ | ✓ |
+| FR-PUB09 | Header / Footer public | ✓ | ✓ | ✓ | ✓ |
+| FR-PUB10 | Modal "Đăng nhập để tiếp tục" | ✓ | — | — | — |
+| FR-PUB11 | Lịch sử xem BĐS gần đây (localStorage) | ✓ | ✓ | ✓ | — |
+| FR-PUB12 | Bản đồ tổng quan tất cả BĐS công khai | ✓ | ✓ | ✓ | ✓ |
+| FR-PUB13 | Thống kê nền tảng (số BĐS, user, giao dịch) | ✓ | ✓ | ✓ | ✓ |
+| **FR-LISTING (Tin đăng)** | | | | | |
+| FR-L01 | Tạo / Sửa / Xoá tin BĐS | — | — | ✓ | ✓ |
+| FR-L02 | Phân loại, hình thức, trạng thái pháp lý | — | — | ✓ | ✓ |
+| FR-L03 | Tọa độ GPS / chọn trên bản đồ | — | — | ✓ | ✓ |
+| FR-L05 | Quản lý trạng thái tin | — | — | ✓ | ✓ |
+| FR-L07 | **Xem tin BĐS công khai** | ✓ | ✓ | ✓ | ✓ |
+| **FR-SEARCH** | | | | | |
+| FR-S01 | Tìm kiếm full-text | ✓ | ✓ | ✓ | ✓ |
+| FR-S02 | Lọc đa tiêu chí | ✓ | ✓ | ✓ | ✓ |
+| FR-S03 | Marker BĐS trên bản đồ | ✓ | ✓ | ✓ | ✓ |
+| FR-S04 | Tìm theo bán kính | ✓ | ✓ | ✓ | ✓ |
+| FR-S06 | Lưu yêu thích | — | ✓ | ✓ | ✓ |
+| **FR-AI / CHAT** | | | | | |
+| FR-C01 | Chat với môi giới | — | ✓ | ✓ | ✓ |
+| FR-C04 | Chatbot AI (FAQ) | △ Demo | ✓ | ✓ | — |
+| **FR-BLOG** | | | | | |
+| FR-B01 | CRUD bài viết Blog | — | — | — | ✓ |
+| FR-B02 | Danh sách bài viết công khai | ✓ | ✓ | ✓ | ✓ |
+| FR-B03 | Chi tiết bài viết + SEO + liên quan | ✓ | ✓ | ✓ | ✓ |
+| **FR-ADMIN** | | | | | |
+| FR-AD01 | Kiểm duyệt tin | — | — | — | ✓ |
+| FR-AD02 | Quản lý người dùng | — | — | — | ✓ |
+| FR-AD05 | Audit log | — | — | — | ✓ |
+| FR-AD06 | Quản lý Blog | — | — | — | ✓ |
+| FR-AD07 | Xem Contact Messages từ khách | — | — | — | ✓ |
+| **FR-CONTACT** | | | | | |
+| FR-CT01 | Gửi form liên hệ (Guest OK) | ✓ | ✓ | ✓ | ✓ |
+| FR-CT02 | Xem & xử lý contact messages | — | — | — | ✓ |
+
+### 15.2. Phân kỳ triển khai
+
+| Sprint | Phạm vi | Status |
+|--------|---------|--------|
+| Sprint 0 | Auth (4 role) + cấu trúc dự án | ✅ Done |
+| **Sprint 1** | **Portal Public (Landing, BĐS, Chi tiết, Bản đồ, So sánh, Blog, Giới thiệu, Liên hệ)** + Login Modal | 🎯 **Hiện tại** |
+| Sprint 2 | User portal (tìm kiếm nâng cao, đặt lịch, chat, đặt cọc) | Planned |
+| Sprint 3 | Host portal (CRM, dashboard, đăng tin wizard) | Planned |
+| Sprint 4 | Admin portal (kiểm duyệt, quản lý user, blog, contact) | Planned |
+| Sprint 5 | Chat real-time + Push Notification | Planned |
+| Sprint 6 | Payment + Escrow | Planned |
+| Sprint 7 | AI Chatbot + Analytics Dashboard | Planned |
+
+---
+
+## 16. Phân tích chức năng Guest (Portal Public)
+
+### 16.1. Mục tiêu
+
+- Khách vãng lai có thể **khám phá trọn vẹn** hệ thống mà không cần đăng ký.
+- Khi khách thực hiện thao tác cần đăng nhập, hiển thị **LoginRequiredModal** thân thiện (không popup spam).
+- CTA đăng ký xuất hiện **nhiều điểm chạm** trong suốt hành trình để chuyển đổi Guest → User/Host.
+
+### 16.2. Các trang Public (Guest được phép)
+
+| # | Trang | Route | Mô tả | Auth |
+|---|-------|-------|-------|------|
+| 1 | Landing Page | `/` | Hero, tin nổi bật, vai trò, testimonials, CTA | Public |
+| 2 | Danh sách BĐS | `/bat-dong-san` | Grid + filter (loại, giao dịch, khu vực, giá) | Public |
+| 3 | Bản đồ BĐS | `/ban-do` | Bản đồ tương tác với marker + cluster | Public |
+| 4 | Chi tiết BĐS | `/bat-dong-san/:id` | Gallery, mô tả, tiện ích, POI, môi giới | Public |
+| 5 | So sánh BĐS | `/so-sanh` | Bảng so sánh tối đa 3 BĐS | Public |
+| 6 | Blog - danh sách | `/blog` | Danh sách bài viết, filter chuyên mục | Public |
+| 7 | Blog - chi tiết | `/blog/:slug` | Nội dung + bài liên quan | Public |
+| 8 | Giới thiệu | `/gioi-thieu` | Sứ mệnh, đội ngũ, đối tác | Public |
+| 9 | Liên hệ | `/lien-he` | Form liên hệ + thông tin công ty | Public |
+| 10 | Đăng nhập | `/login` | Form email + password | Public |
+| 11 | Đăng ký | `/register` | Wizard 3 bước + OTP | Public |
+| 12 | Quên mật khẩu | `/forgot-password` | OTP + đặt lại MK | Public |
+
+### 16.3. Header & Footer Public
+
+**Header (sticky, gradient đậm `brand-700 → teal-700`):**
+- Logo `BDS Pro` + tagline
+- Nav: Trang chủ · BĐS · Bản đồ · Blog · So sánh · Giới thiệu · Liên hệ
+- Khu vực tài khoản:
+  - **Guest:** `[Đăng nhập]` (viền) + `[Đăng ký miễn phí]` (primary)
+  - **User/Host/Admin:** PortalHeaderActions (dropdown)
+
+**Footer (4 cột + bản quyền):**
+- Logo + mô tả
+- Liên kết Người tìm BĐS
+- Liên kết Môi giới / Chủ BĐS
+- Bản tin email + bản quyền
+
+### 16.4. LoginRequiredModal — hành vi
+
+Xuất hiện khi Guest click:
+- "Lưu tin" ở PropertyCard / Chi tiết
+- "Đặt lịch xem"
+- "Chat với môi giới"
+- "Đặt cọc"
+- "Đánh giá"
+- "So sánh nâng cao"
+- "Liên hệ tư vấn"
+
+Nội dung modal:
+- Icon khoá + tiêu đề hành động
+- Mô tả ngắn
+- 2 nút: `[Đăng nhập]` (chuyển `/login?redirect=...`) / `[Đăng ký miễn phí]` (chuyển `/register?redirect=...`)
+- Nút "X" / "Tiếp tục xem" để đóng
+- Không hiện khi Guest chỉ xem
+
+---
+
+## 17. Use case chi tiết - Guest
+
+### UC-G01: Xem danh sách BĐS công khai
+
+| Trường | Mô tả |
+|--------|-------|
+| **Actor chính** | Guest |
+| **Mô tả** | Guest truy cập trang `/bat-dong-san` để xem các tin BĐS đang active |
+| **Điều kiện tiên quyết** | Hệ thống đã có tin BĐS active |
+| **Luồng chính** | 1. Guest mở `/bat-dong-san` <br> 2. FE gọi `GET /api/v1/properties?status=active` <br> 3. BE trả về danh sách BĐS (phân trang 12/trang) <br> 4. FE hiển thị grid PropertyCard <br> 5. Guest áp filter (loại, giao dịch, khu vực, giá) → gọi lại API <br> 6. Kết quả được cập nhật |
+| **Luồng thay thế** | 3a. BE lỗi → FE dùng fallback localStorage (propertyStorage) <br> 5a. Filter không khớp → hiển thị "Không có BĐS phù hợp" |
+| **Điều kiện sau** | Guest có thể click vào PropertyCard để xem chi tiết |
+
+### UC-G02: Xem chi tiết BĐS
+
+| Trường | Mô tả |
+|--------|-------|
+| **Actor chính** | Guest |
+| **Mô tả** | Guest xem toàn bộ thông tin chi tiết của 1 BĐS |
+| **Luồng chính** | 1. Guest click PropertyCard → `/bat-dong-san/:id` <br> 2. FE gọi `GET /api/v1/properties/:id` (tăng viewCount) <br> 3. FE gọi `GET /api/v1/properties/:id/pois` (POI trong bán kính 3km) <br> 4. Hiển thị: gallery, giá, địa chỉ, mô tả, tiện ích, bản đồ, POI, thông tin môi giới <br> 5. Guest click `[Lưu tin]` / `[Đặt lịch]` / `[Chat]` → LoginRequiredModal |
+| **Luồng thay thế** | 3a. POI rỗng → fallback POI mẫu (3 điểm) <br> 5a. BĐS không tồn tại → trang 404 |
+
+### UC-G03: Tìm BĐS trên bản đồ
+
+| Trường | Mô tả |
+|--------|-------|
+| **Actor chính** | Guest |
+| **Mô tả** | Guest xem bản đồ tổng quan các BĐS công khai |
+| **Luồng chính** | 1. Guest mở `/ban-do` <br> 2. FE gọi `GET /api/v1/properties` (lấy toàn bộ active) <br> 3. Render Leaflet + OpenStreetMap với marker + cluster <br> 4. Guest kéo map, zoom, click marker → popup preview <br> 5. Guest click `[Xem chi tiết]` → `/bat-dong-san/:id` |
+
+### UC-G04: So sánh BĐS
+
+| Trường | Mô tả |
+|--------|-------|
+| **Actor chính** | Guest |
+| **Mô tả** | Guest so sánh tối đa 3 BĐS |
+| **Luồng chính** | 1. Guest mở chi tiết BĐS → click `[So sánh]` <br> 2. compareStorage thêm id vào localStorage (max 3) <br> 3. Guest mở `/so-sanh` <br> 4. FE đọc localStorage → fetch 3 BĐS song song <br> 5. Hiển thị bảng so sánh (giá, diện tích, PN, tiện ích, vị trí) |
+
+### UC-G05: Đọc Blog / Tin tức
+
+| Trường | Mô tả |
+|--------|-------|
+| **Actor chính** | Guest |
+| **Luồng chính** | 1. Guest mở `/blog` <br> 2. FE gọi `GET /api/v1/blog/posts?status=published` <br> 3. Hiển thị danh sách bài viết + filter chuyên mục <br> 4. Guest click bài → `/blog/:slug` <br> 5. FE gọi `GET /api/v1/blog/posts/slug/:slug` <br> 6. Hiển thị nội dung + bài viết liên quan |
+
+### UC-G06: Gửi form Liên hệ
+
+| Trường | Mô tả |
+|--------|-------|
+| **Actor chính** | Guest |
+| **Luồng chính** | 1. Guest mở `/lien-he` <br> 2. Điền form: Họ tên, Email, SĐT, Tiêu đề, Nội dung <br> 3. Submit → `POST /api/v1/public/contact` <br> 4. BE lưu `contact_messages` với status=`new` <br> 5. Trả về thông báo "Chúng tôi sẽ phản hồi trong 24h" |
+| **Validation** | Email format, SĐT 10-11 số, Nội dung >= 10 ký tự |
+
+### UC-G07: Guest đăng ký tài khoản
+
+| Trường | Mô tả |
+|--------|-------|
+| **Actor chính** | Guest |
+| **Mô tả** | Chuyển đổi Guest → User hoặc Host |
+| **Luồng chính** | 1. Guest mở `/register` <br> 2. Chọn vai trò: `[Người tìm BĐS]` (user) hoặc `[Môi giới]` (host) <br> 3. Điền: Họ tên, Email, SĐT, Mật khẩu <br> 4. Submit → `POST /api/v1/auth/register` <br> 5. BE trả về `{user, accessToken, refreshToken}` <br> 6. FE lưu token + chuyển về portal tương ứng (`/client` hoặc `/broker`) |
+
+---
+
+## 18. Phân tích dữ liệu mới (Blog, Liên hệ, So sánh)
+
+### 18.1. Bảng mới cần thêm vào DB
+
+#### `blog_categories`
+```sql
+CREATE TABLE blog_categories (
+    id VARCHAR(36) PRIMARY KEY,
+    name VARCHAR(120) NOT NULL UNIQUE,
+    slug VARCHAR(120) NOT NULL UNIQUE,
+    description VARCHAR(500) NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### `blog_posts`
+```sql
+CREATE TABLE blog_posts (
+    id VARCHAR(36) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL UNIQUE,
+    excerpt VARCHAR(500) NULL,
+    content TEXT NOT NULL,
+    cover_image VARCHAR(500) NULL,
+    author_id VARCHAR(36) NULL,
+    author_name VARCHAR(100) NULL,
+    category_id VARCHAR(36) NULL,
+    status ENUM('draft','pending','published','archived') DEFAULT 'draft',
+    view_count INT DEFAULT 0,
+    published_at DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES blog_categories(id) ON DELETE SET NULL,
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_blog_status (status),
+    INDEX idx_blog_slug (slug),
+    INDEX idx_blog_category (category_id)
+);
+```
+
+#### `contact_messages`
+```sql
+CREATE TABLE contact_messages (
+    id VARCHAR(36) PRIMARY KEY,
+    name VARCHAR(120) NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    phone VARCHAR(20) NULL,
+    subject VARCHAR(200) NOT NULL,
+    message TEXT NOT NULL,
+    status ENUM('new','read','replied','closed') DEFAULT 'new',
+    ip_address VARCHAR(45) NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_contact_status (status)
+);
+```
+
+#### `site_stats` (cache thống kê public)
+```sql
+CREATE TABLE site_stats (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    metric_key VARCHAR(50) NOT NULL UNIQUE,
+    metric_value BIGINT NOT NULL DEFAULT 0,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+> **Lưu ý:** Bảng `favorites` đã có sẵn cho User/Host. Guest không cần bảng `compare_items` vì so sánh lưu localStorage.
+
+### 18.2. Quan hệ dữ liệu
+
+```
+users ──┬──< properties ──< favorites
+        └──< blog_posts (author)
+
+blog_categories ──< blog_posts
+
+contact_messages (độc lập, không FK với users vì Guest có thể gửi)
+
+site_stats (độc lập)
+```
+
+### 18.3. Entity mới trong Backend
+
+| File | Entity | Chức năng |
+|------|--------|-----------|
+| `modules/blog/entities/blog-category.entity.ts` | BlogCategory | Chuyên mục bài viết |
+| `modules/blog/entities/blog-post.entity.ts` | BlogPost | Bài viết blog |
+| `modules/public/entities/contact-message.entity.ts` | ContactMessage | Form liên hệ |
+| `modules/public/entities/site-stat.entity.ts` | SiteStat | Cache thống kê |
+
+### 18.4. DTO & Response
+
+```typescript
+// BlogPost Response
+interface PublicBlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  coverImage: string | null;
+  authorName: string;
+  category: { id: string; name: string; slug: string } | null;
+  status: 'published' | 'draft';
+  viewCount: number;
+  publishedAt: string;
+  createdAt: string;
+}
+
+// ContactMessage Request
+interface CreateContactMessageDto {
+  name: string; // required, max 120
+  email: string; // required, valid email
+  phone?: string; // optional, 10-11 digits
+  subject: string; // required, max 200
+  message: string; // required, min 10 chars
+}
+
+// SiteStats Response
+interface PublicSiteStats {
+  totalProperties: number;
+  totalAgents: number;
+  totalUsers: number;
+  totalTransactions: number;
+  totalBlogPosts: number;
+}
+```
+
+---
+
+## 19. Thiết kế UI/UX - Portal Public
+
+### 19.1. Design tokens
+
+| Token | Value | Sử dụng |
+|-------|-------|---------|
+| Primary | `brand-600` (#059669) | CTA, nút chính |
+| Gradient Header | `brand-700 → teal-700` | Header sticky |
+| Background | `slate-50` / `white` | App background |
+| Border | `slate-200` | Card, input |
+| Text | `slate-900` (heading), `slate-600` (body) | Typography |
+| Accent | `emerald-600`, `teal-500` | Verified badge, hero |
+
+### 19.2. Component Public sử dụng lại
+
+| Component | Vai trò |
+|-----------|---------|
+| `PropertyCard` | Card BĐS (đã có) |
+| `RealMap` | Bản đồ Leaflet (đã có) |
+| `LoginRequiredModal` | Popup đăng nhập (đã có) |
+| `ImageLightbox` | Phóng to ảnh (đã có) |
+| `ReportListingModal` | Báo cáo vi phạm (đã có) |
+
+### 19.3. Component Public mới cần tạo
+
+| Component | Đường dẫn | Mô tả |
+|-----------|-----------|-------|
+| `PublicHeader` | `components/layout/public/PublicHeader.tsx` | Header public sticky |
+| `PublicFooter` | `components/layout/public/PublicFooter.tsx` | Footer 4 cột |
+| `PublicLayout` | `layouts/PublicLayout.tsx` | Layout bọc các trang public |
+| `BlogCard` | `components/public/BlogCard.tsx` | Card bài viết |
+| `ContactForm` | `components/public/ContactForm.tsx` | Form liên hệ |
+| `PropertyCompareTable` | `components/public/PropertyCompareTable.tsx` | Bảng so sánh BĐS |
+| `PublicMapView` | `components/public/PublicMapView.tsx` | Bản đồ tổng quan |
+
+### 19.4. Layout mới
+
+```
+PublicLayout
+├── <PublicHeader /> (sticky, gradient)
+├── <main className="max-w-7xl mx-auto px-4 py-6">
+│     <Outlet />
+├── </main>
+├── <PublicFooter />
+└── (modals: LoginRequired, ImageLightbox...)
+```
+
+---
+
+## 20. API Endpoint mới cho Portal Public
+
+### 20.1. Blog (mới)
+
+| Method | Path | Auth | Mô tả |
+|--------|------|:----:|-------|
+| GET | `/api/v1/blog/categories` | Public | Danh sách chuyên mục |
+| GET | `/api/v1/blog/posts` | Public | Danh sách bài viết published (filter: category, q, page, limit) |
+| GET | `/api/v1/blog/posts/slug/:slug` | Public | Chi tiết bài viết theo slug |
+| GET | `/api/v1/blog/posts/:id/related` | Public | Bài viết liên quan |
+| POST | `/api/v1/blog/posts` | Admin | Tạo bài viết |
+| PATCH | `/api/v1/blog/posts/:id` | Admin | Sửa bài viết |
+| DELETE | `/api/v1/blog/posts/:id` | Admin | Xóa bài viết |
+| GET | `/api/v1/blog/posts/all` | Admin | Danh sách tất cả bài viết (mọi status) |
+
+### 20.2. Public (mới)
+
+| Method | Path | Auth | Mô tả |
+|--------|------|:----:|-------|
+| GET | `/api/v1/public/stats` | Public | Thống kê nền tảng |
+| GET | `/api/v1/public/pois` | Public | POI toàn hệ thống (theo category) |
+| POST | `/api/v1/public/contact` | Public | Gửi form liên hệ |
+| GET | `/api/v1/public/contact` | Admin | Danh sách contact messages |
+| PATCH | `/api/v1/public/contact/:id` | Admin | Cập nhật trạng thái contact |
+
+### 20.3. Auth (đã có, bổ sung)
+
+| Method | Path | Mô tả |
+|--------|------|-------|
+| POST | `/api/v1/auth/register` | Đăng ký (đã có) |
+| POST | `/api/v1/auth/login` | Đăng nhập (đã có) |
+| POST | `/api/v1/auth/forgot-password` | Quên MK (đã có) |
+| POST | `/api/v1/auth/refresh` | Refresh token (đã có) |
+
+---
+
+## 21. Lộ trình triển khai Sprint tiếp theo
+
+### Sprint 1 (hiện tại) — Portal Public + Guest
+
+**Mục tiêu:** Hoàn thiện trải nghiệm Guest trên Web, chuẩn bị cho User/Host/Admin.
+
+| Task | Loại | Ưu tiên |
+|------|------|---------|
+| 1. Cập nhật docs (file này) | Docs | P0 |
+| 2. Tạo migration DB: `blog_posts`, `blog_categories`, `contact_messages`, `site_stats` | DB | P0 |
+| 3. Backend: Blog module (CRUD + public read) | BE | P0 |
+| 4. Backend: Public module (stats, POIs, contact) | BE | P0 |
+| 5. Backend: Seed data (5 blog posts mẫu, 50 POI toàn hệ thống, 20 contact mẫu, stats) | BE | P0 |
+| 6. FE: Services (blog, public, contact) | FE | P0 |
+| 7. FE: PublicLayout + PublicHeader + PublicFooter | FE | P0 |
+| 8. FE: Redesign LandingPage (hero, search shortcut, featured, stats, testimonials, blog) | FE | P0 |
+| 9. FE: Trang `/bat-dong-san` (danh sách + filter) | FE | P0 |
+| 10. FE: Trang `/ban-do` (bản đồ tổng quan) | FE | P0 |
+| 11. FE: Trang `/bat-dong-san/:id` (chi tiết cho Guest) | FE | P0 |
+| 12. FE: Trang `/so-sanh` (so sánh tối đa 3 BĐS) | FE | P0 |
+| 13. FE: Trang `/blog` + `/blog/:slug` | FE | P0 |
+| 14. FE: Trang `/gioi-thieu` | FE | P1 |
+| 15. FE: Trang `/lien-he` + form liên hệ | FE | P1 |
+| 16. FE: Cập nhật AppRouter với public routes | FE | P0 |
+| 17. FE: Tích hợp LoginRequiredModal ở mọi action cần auth | FE | P0 |
+| 18. FE: Compare storage (localStorage) | FE | P1 |
+
+### Sprint 2 (kế tiếp) — User Portal hoàn chỉnh
+
+| Task | Loại |
+|------|------|
+| Trang tìm kiếm `/client/tim-kiem` (60% map + 40% list, đã có) | FE |
+| Chi tiết BĐS cho User (CTA chat, đặt lịch, đặt cọc) | FE |
+| Hoạt động (Lịch hẹn + Tin nhắn + Cọc) | FE |
+| Đã lưu + So sánh (đồng bộ server khi login) | FE |
+| Tài khoản cá nhân | FE |
+| Backend: Favorites, Appointments, Transactions, Chat, Notifications | BE |
+
+### Sprint 3 — Host Portal (Môi giới)
+
+| Task | Loại |
+|------|------|
+| Tổng quan (KPI + Việc cần làm) | FE |
+| Tin đăng (Pipeline + Wizard 5 bước) | FE |
+| Khách hàng & Lead (CRM gộp) | FE |
+| Lịch hẹn (Calendar) | FE |
+| Phân tích hiệu suất tin đăng | FE |
+
+### Sprint 4 — Admin Portal
+
+| Task | Loại |
+|------|------|
+| Dashboard tổng quan | FE |
+| Kiểm duyệt tin | FE |
+| Quản lý người dùng | FE |
+| Quản lý Blog | FE |
+| Quản lý Contact Messages | FE |
+| Vận hành (Chat monitor, báo cáo vi phạm) | FE |
+| Nhật ký Audit log | FE |
+| Cài đặt hệ thống | FE |
+
+### Sprint 5+ — Realtime, Payment, AI
+
+(Đã lên kế hoạch trong tài liệu gốc)
+
+---
+
+## Phụ lục C — Sơ đồ ERD cập nhật (4 role + Blog + Contact)
+
+```
+┌──────────────┐
+│   users      │
+│   (4 roles)  │
+└──┬─────────┬─┘
+   │         │
+   │    ┌────▼──────────┐
+   │    │  blog_posts   │──── blog_categories
+   │    └───────────────┘
+   │
+   ├────< properties >──── favorites
+   ├────< appointments >
+   ├────< chat_threads >───< chat_messages
+   ├────< transactions >
+   └────< reports >
+
+contact_messages (độc lập)
+site_stats (độc lập, cache)
+points_of_interest (độc lập, toàn cục)
+```
+
+---
+
+*Tài liệu cập nhật lần cuối: 04/09/2026 — Bổ sung Sprint 1: Portal Public + Guest.*
