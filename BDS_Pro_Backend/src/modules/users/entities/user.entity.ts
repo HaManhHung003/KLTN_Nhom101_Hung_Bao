@@ -37,6 +37,14 @@ export class User extends BaseEntity {
   @Column({ name: 'refresh_token_hash', type: 'varchar', length: 255, nullable: true, select: false })
   refreshTokenHash: string | null;
 
+  /** Mã OTP xác thực email (6 chữ số), tự xóa sau khi xác thực xong. */
+  @Column({ name: 'otp_code', type: 'varchar', length: 10, nullable: true, select: false })
+  otpCode: string | null;
+
+  /** Thời điểm mã OTP hết hạn (thường 5 phút sau khi tạo). */
+  @Column({ name: 'otp_expiry', type: 'datetime', nullable: true, select: false })
+  otpExpiry: Date | null;
+
   @OneToMany(() => Property, (p) => p.owner)
   properties: Property[];
 

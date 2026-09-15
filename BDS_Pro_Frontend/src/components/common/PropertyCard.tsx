@@ -1,19 +1,19 @@
-import { useEffect, useState } from 'react'
-import { Bath, BedDouble, Heart, MapPin, ShieldCheck } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import type { Property } from '@/types'
-import { Badge } from './Badge'
-import { formatPrice, isVerifiedLegal, propertyTypeLabels, transactionLabels } from '@/utils/format'
+import { useEffect, useState } from 'react';
+import { Bath, BedDouble, Heart, MapPin, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import type { Property } from '@/types';
+import { Badge } from './Badge';
+import { formatPrice, isVerifiedLegal, propertyTypeLabels, transactionLabels } from '@/utils/format';
 
 interface PropertyCardProps {
-  property: Property
-  isFavorite?: boolean
-  detailPath?: string
-  onToggleFavorite?: () => void
+  property: Property;
+  isFavorite?: boolean;
+  detailPath?: string;
+  onToggleFavorite?: () => void;
   /** Enable image carousel cycling on hover */
-  carousel?: boolean
+  carousel?: boolean;
   /** Show compact layout for search list panel */
-  compact?: boolean
+  compact?: boolean;
 }
 
 export function PropertyCard({
@@ -24,27 +24,30 @@ export function PropertyCard({
   carousel = false,
   compact = false,
 }: PropertyCardProps) {
-  const [imageIndex, setImageIndex] = useState(0)
-  const [hovering, setHovering] = useState(false)
-  const images = property.images.length > 0 ? property.images : ['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800']
-  const verified = isVerifiedLegal(property.legalStatus)
+  const [imageIndex, setImageIndex] = useState(0);
+  const [hovering, setHovering] = useState(false);
+  const images =
+    property.images && property.images.length > 0
+      ? property.images
+      : ['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800'];
+  const verified = isVerifiedLegal(property.legalStatus);
 
   useEffect(() => {
-    if (!carousel || !hovering || images.length <= 1) return
+    if (!carousel || !hovering || images.length <= 1) return;
     const timer = setInterval(() => {
-      setImageIndex((i) => (i + 1) % images.length)
-    }, 1200)
-    return () => clearInterval(timer)
-  }, [carousel, hovering, images.length])
+      setImageIndex((i) => (i + 1) % images.length);
+    }, 1200);
+    return () => clearInterval(timer);
+  }, [carousel, hovering, images.length]);
 
   useEffect(() => {
-    if (!hovering) setImageIndex(0)
-  }, [hovering])
+    if (!hovering) setImageIndex(0);
+  }, [hovering]);
 
   return (
     <article
-      className={`group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg ${
-        compact ? 'flex gap-0' : ''
+      className={`group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg ${
+        compact ? 'flex-row' : ''
       }`}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
@@ -77,9 +80,9 @@ export function PropertyCard({
         )}
 
         <div className="absolute left-2 top-2 flex flex-wrap gap-1">
-          <Badge className="bg-sky-600 text-white text-[10px]">{transactionLabels[property.transactionType]}</Badge>
+          <Badge className="bg-sky-600 text-white text-[10px]">{transactionLabels[property.transactionType] || property.transactionType}</Badge>
           {!compact && (
-            <Badge className="bg-white/90 text-slate-700 text-[10px]">{propertyTypeLabels[property.type]}</Badge>
+            <Badge className="bg-white/90 text-slate-700 text-[10px]">{propertyTypeLabels[property.type] || property.type}</Badge>
           )}
           {verified && (
             <Badge className="flex items-center gap-0.5 bg-emerald-600 text-white text-[10px]">
@@ -92,8 +95,8 @@ export function PropertyCard({
         <button
           type="button"
           onClick={(e) => {
-            e.preventDefault()
-            onToggleFavorite?.()
+            e.preventDefault();
+            onToggleFavorite?.();
           }}
           className="absolute right-2 top-2 rounded-full bg-white/90 p-2 shadow-sm transition hover:bg-white"
           aria-label={isFavorite ? 'Bỏ lưu tin' : 'Lưu tin'}
@@ -130,5 +133,5 @@ export function PropertyCard({
         </div>
       </Link>
     </article>
-  )
+  );
 }

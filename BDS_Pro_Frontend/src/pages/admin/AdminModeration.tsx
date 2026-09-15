@@ -13,8 +13,9 @@ export function AdminModeration() {
     setLoading(true);
     propertyService
       .getPendingProperties()
-      .then((res) => {
-        if (res && res.data) setQueue(res.data);
+      .then((res: any) => {
+        const list = Array.isArray(res) ? res : res?.data || [];
+        setQueue(list);
       })
       .catch(() => {})
       .finally(() => setLoading(false));

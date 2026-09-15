@@ -82,3 +82,50 @@ export class ChangePasswordDto {
   @MaxLength(72)
   newPassword: string;
 }
+
+/** DTO gửi mã OTP xác thực email trước khi đăng ký. */
+export class SendOtpDto {
+  @ApiProperty({ example: 'user@example.com' })
+  @IsEmail({}, { message: 'Email không hợp lệ' })
+  email: string;
+
+  @ApiProperty({ example: 'Nguyễn Văn A' })
+  @IsString()
+  @MaxLength(150)
+  name: string;
+}
+
+/** DTO xác thực mã OTP và hoàn tất đăng ký. */
+export class VerifyOtpDto {
+  @ApiProperty({ example: 'user@example.com' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: '123456', description: 'Mã OTP 6 chữ số' })
+  @IsString()
+  @MinLength(6)
+  @MaxLength(6)
+  otp: string;
+
+  @ApiProperty({ example: 'Nguyễn Văn A' })
+  @IsString()
+  @MaxLength(150)
+  name: string;
+
+  @ApiProperty({ example: 'StrongPass123!' })
+  @IsString()
+  @MinLength(6)
+  @MaxLength(72)
+  password: string;
+
+  @ApiPropertyOptional({ example: '0901234567' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  phone?: string;
+
+  @ApiPropertyOptional({ enum: UserRole, default: UserRole.BUYER })
+  @IsOptional()
+  @IsEnum(UserRole)
+  role?: UserRole;
+}

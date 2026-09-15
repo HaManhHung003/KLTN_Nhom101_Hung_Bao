@@ -1,50 +1,55 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
-import { ClientLayout } from '@/layouts/ClientLayout'
-import { BrokerLayout } from '@/layouts/BrokerLayout'
-import { AdminLayout } from '@/layouts/AdminLayout'
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { ClientLayout } from '@/layouts/ClientLayout';
+import { BrokerLayout } from '@/layouts/BrokerLayout';
+import { AdminLayout } from '@/layouts/AdminLayout';
 
-import { LandingPage } from '@/pages/public/LandingPage'
-import { LoginPage } from '@/pages/public/LoginPage'
-import { RegisterPage } from '@/pages/public/RegisterPage'
-import { ForgotPasswordPage } from '@/pages/public/ForgotPasswordPage'
+import { LandingPage } from '@/pages/public/LandingPage';
+import { LoginPage } from '@/pages/public/LoginPage';
+import { RegisterPage } from '@/pages/public/RegisterPage';
+import { ForgotPasswordPage } from '@/pages/public/ForgotPasswordPage';
 
 // Client pages
-import { ClientHomePage } from '@/pages/client/ClientHomePage'
-import { ClientSearchPage } from '@/pages/client/ClientSearchPage'
-import { ClientPropertyDetailPage } from '@/pages/client/ClientPropertyDetailPage'
-import { ClientChatPage } from '@/pages/client/ClientChatPage'
-import { ClientProfilePage } from '@/pages/client/ClientProfilePage'
-import { ClientActivityPage } from '@/pages/client/ClientActivityPage'
-import { ClientSavedPage } from '@/pages/client/ClientSavedPage'
-import { ClientDealsPage } from '@/pages/client/ClientDealsPage'
+import { ClientHomePage } from '@/pages/client/ClientHomePage';
+import { ClientSearchPage } from '@/pages/client/ClientSearchPage';
+import { ClientPropertyDetailPage } from '@/pages/client/ClientPropertyDetailPage';
+import { ClientChatPage } from '@/pages/client/ClientChatPage';
+import { ClientProfilePage } from '@/pages/client/ClientProfilePage';
+import { ClientActivityPage } from '@/pages/client/ClientActivityPage';
+import { ClientSavedPage } from '@/pages/client/ClientSavedPage';
+import { ClientDealsPage } from '@/pages/client/ClientDealsPage';
 
 // Broker pages
-import { BrokerDashboardPage } from '@/pages/broker/BrokerDashboardPage'
-import { BrokerPropertiesPage } from '@/pages/broker/BrokerPropertiesPage'
-import { BrokerBookingsPage } from '@/pages/broker/BrokerBookingsPage'
-import { BrokerCustomersPage } from '@/pages/broker/BrokerCustomersPage'
-import { BrokerProfilePage } from '@/pages/broker/BrokerProfilePage'
-import { BrokerNewPropertyPage } from '@/pages/broker/BrokerNewPropertyPage'
-import { BrokerDealsPage } from '@/pages/broker/BrokerDealsPage'
-import { AgentAnalytics } from '@/pages/agent/AgentAnalytics'
+import { BrokerDashboardPage } from '@/pages/broker/BrokerDashboardPage';
+import { BrokerPropertiesPage } from '@/pages/broker/BrokerPropertiesPage';
+import { BrokerBookingsPage } from '@/pages/broker/BrokerBookingsPage';
+import { BrokerCustomersPage } from '@/pages/broker/BrokerCustomersPage';
+import { BrokerProfilePage } from '@/pages/broker/BrokerProfilePage';
+import { BrokerNewPropertyPage } from '@/pages/broker/BrokerNewPropertyPage';
+import { BrokerDealsPage } from '@/pages/broker/BrokerDealsPage';
+import { AgentAnalytics } from '@/pages/agent/AgentAnalytics';
 
 // Admin pages
-import { AdminOverviewPage } from '@/pages/admin-portal/AdminOverviewPage'
-import { AdminModerationPage } from '@/pages/admin-portal/AdminModerationPage'
-import { AdminUsersPage } from '@/pages/admin-portal/AdminUsersPage'
-import { AdminTransactionsPage } from '@/pages/admin-portal/AdminTransactionsPage'
-import { AdminOperationsPage } from '@/pages/admin-portal/AdminOperationsPage'
-import { AdminLogsPage } from '@/pages/admin-portal/AdminLogsPage'
-import { AdminSettingsPage } from '@/pages/admin-portal/AdminSettingsPage'
+import { AdminOverviewPage } from '@/pages/admin-portal/AdminOverviewPage';
+import { AdminModerationPage } from '@/pages/admin-portal/AdminModerationPage';
+import { AdminPropertiesPage } from '@/pages/admin-portal/AdminPropertiesPage';
+import { AdminUsersPage } from '@/pages/admin-portal/AdminUsersPage';
+import { AdminTransactionsPage } from '@/pages/admin-portal/AdminTransactionsPage';
+import { AdminOperationsPage } from '@/pages/admin-portal/AdminOperationsPage';
+import { AdminLogsPage } from '@/pages/admin-portal/AdminLogsPage';
+import { AdminSettingsPage } from '@/pages/admin-portal/AdminSettingsPage';
 
-import { PropertyDetailView } from '@/pages/shared/PropertyDetailView'
-import { EditListingForm } from '@/pages/shared/EditListingForm'
+import { PropertyDetailView } from '@/pages/shared/PropertyDetailView';
+import { EditListingForm } from '@/pages/shared/EditListingForm';
 
 export function AppRouter() {
   return (
     <Routes>
-      {/* Public marketing */}
-      <Route path="/" element={<LandingPage />} />
+      {/* ─── PUBLIC PORTAL ─── */}
+      <Route index element={<LandingPage />} />
+      <Route path="bat-dong-san" element={<ClientSearchPage />} />
+      <Route path="bat-dong-san/:id" element={<ClientPropertyDetailPage />} />
+
+      {/* Auth pages (no chrome) */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -93,6 +98,7 @@ export function AppRouter() {
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminOverviewPage />} />
         <Route path="moderation" element={<AdminModerationPage />} />
+        <Route path="properties" element={<AdminPropertiesPage />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="transactions" element={<AdminTransactionsPage />} />
         <Route path="van-hanh" element={<AdminOperationsPage />} />
@@ -107,5 +113,5 @@ export function AppRouter() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  )
+  );
 }

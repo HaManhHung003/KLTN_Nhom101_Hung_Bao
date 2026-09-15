@@ -5,6 +5,7 @@ import { LogoutButton } from '@/components/common/LogoutButton';
 import { AuthModal } from '@/components/common/AuthModal';
 import { useAuth } from '@/context/AuthContext';
 import { ADMIN_ROUTES, BROKER_ROUTES, CLIENT_ROUTES } from '@/config/routes';
+import { HeaderChatDropdown } from '@/components/chat/HeaderChatDropdown';
 
 export function PortalHeaderActions() {
   const { user, actorRole } = useAuth();
@@ -69,6 +70,9 @@ export function PortalHeaderActions() {
           <span>{roleLabelMap[actorRole]}</span>
         </Link>
       )}
+
+      {/* Broker Chat Dropdown */}
+      <HeaderChatDropdown />
 
       {/* Notifications */}
       <div className="relative">

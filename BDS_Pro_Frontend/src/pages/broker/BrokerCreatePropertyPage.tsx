@@ -138,38 +138,6 @@ export function BrokerCreatePropertyPage({ onSuccess }: BrokerCreatePropertyPage
     }
   }
 
-  function savePropertyToLocalStorage(imageUrls: string[]) {
-    try {
-      const newProperty = {
-        id: `prop-custom-${Date.now()}`,
-        title: form.title || 'Bất động sản mới',
-        description: form.description || 'Mô tả chi tiết bất động sản',
-        type: form.category,
-        transactionType: form.transactionType,
-        price: parseFloat(form.price) || 1000000000,
-        area: parseFloat(form.area) || 50,
-        legalStatus: form.legalStatus,
-        address: `${form.street ? form.street + ', ' : ''}${form.ward ? form.ward + ', ' : ''}${form.district || 'Quận 1'}, ${form.province}`,
-        district: form.district || 'Quận 1',
-        city: form.province || 'TP. Hồ Chí Minh',
-        latitude: form.latitude || 10.7769,
-        longitude: form.longitude || 106.7009,
-        bedrooms: parseInt(form.bedrooms) || 1,
-        bathrooms: parseInt(form.bathrooms) || 1,
-        images: imageUrls.length > 0 ? imageUrls : ['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800'],
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-      };
-
-      const existingStr = localStorage.getItem('bdspro_custom_properties') || '[]';
-      const existing = JSON.parse(existingStr);
-      existing.unshift(newProperty);
-      localStorage.setItem('bdspro_custom_properties', JSON.stringify(existing));
-    } catch (e) {
-      console.warn('LocalStorage save fallback error', e);
-    }
-  }
-
   async function handleSubmit() {
     if (!validateCurrentStep(4)) {
       setStep(4)
@@ -200,34 +168,29 @@ export function BrokerCreatePropertyPage({ onSuccess }: BrokerCreatePropertyPage
         imageUrls = form.media.map((m) => m.url)
       }
 
-      // 2. Submit property payload to backend API (or fallback if unauthorized/offline)
-      try {
-        await propertyService.createProperty({
-          title: form.title || 'Bất động sản mới',
-          description: form.description || 'Mô tả chi tiết bất động sản',
-          type: form.category,
-          transactionType: form.transactionType,
-          price: parseFloat(form.price) || 1000000000,
-          area: parseFloat(form.area) || 50,
-          legalStatus: form.legalStatus,
-          address: `${form.street ? form.street + ', ' : ''}${form.ward ? form.ward + ', ' : ''}${form.district || 'Quận 1'}, ${form.province}`,
-          district: form.district || 'Quận 1',
-          city: form.province || 'TP. Hồ Chí Minh',
-          latitude: form.latitude || 10.7769,
-          longitude: form.longitude || 106.7009,
-          bedrooms: parseInt(form.bedrooms) || 1,
-          bathrooms: parseInt(form.bathrooms) || 1,
-          images: imageUrls.length > 0 ? imageUrls : ['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800'],
-        })
-      } catch (apiErr: any) {
-        // If unauthorized or backend offline, fallback to local storage save so submission succeeds!
-        console.warn('Backend API submission warning:', apiErr?.message)
-        savePropertyToLocalStorage(imageUrls)
-      }
+      // 2. Gửi lên API backend — nguồn sự thật duy nhất
+      await propertyService.createProperty({
+        title: form.title || 'Bất động sản mới',
+        description: form.description || 'Mô tả chi tiết bất động sản',
+        type: form.category,
+        transactionType: form.transactionType,
+        price: parseFloat(form.price) || 1000000000,
+        area: parseFloat(form.area) || 50,
+        legalStatus: form.legalStatus,
+        address: `${form.street ? form.street + ', ' : ''}${form.ward ? form.ward + ', ' : ''}${form.district || 'Quận 1'}, ${form.province}`,
+        district: form.district || 'Quận 1',
+        city: form.province || 'TP. Hồ Chí Minh',
+        latitude: form.latitude || 10.7769,
+        longitude: form.longitude || 106.7009,
+        bedrooms: parseInt(form.bedrooms) || 1,
+        bathrooms: parseInt(form.bathrooms) || 1,
+        images: imageUrls.length > 0 ? imageUrls : [],
+      })
 
       setSubmitted(true)
     } catch (err: any) {
-      setError(err.message || 'Lỗi tạo tin đăng. Vui lòng kiểm tra lại.')
+      const msg = err?.response?.data?.message || err?.message || 'Lỗi tạo tin đăng. Vui lòng kiểm tra lại.'
+      setError(Array.isArray(msg) ? msg.join('; ') : msg)
     } finally {
       setSubmitting(false)
     }
@@ -546,7 +509,30 @@ export function BrokerCreatePropertyPage({ onSuccess }: BrokerCreatePropertyPage
             </article>
             {error && (
               <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-200">
-                {error}
+                <p className="font-semibold">
+                  {error.toLowerCase().includes('unauthorized')
+                    ? 'Phiên đăng nhập đã hết hạn hoặc chưa đăng nhập tài khoản môi giới.'
+                    : error}
+                </p>
+                {error.toLowerCase().includes('unauthorized') && (
+                  <div className="mt-3 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('refreshToken');
+                        localStorage.removeItem('user');
+                        window.location.href = '/client/ca-nhan';
+                      }}
+                      className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 transition shadow-sm"
+                    >
+                      Đăng nhập lại ngay
+                    </button>
+                    <span className="text-xs text-slate-500">
+                      (Dùng tài khoản: <strong>vanbao@bdspro.vn</strong> / <strong>123456</strong>)
+                    </span>
+                  </div>
+                )}
               </div>
             )}
             <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">

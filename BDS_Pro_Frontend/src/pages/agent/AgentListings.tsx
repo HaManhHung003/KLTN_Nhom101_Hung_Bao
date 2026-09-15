@@ -14,12 +14,13 @@ export function AgentListings({ embedded = false }: { embedded?: boolean }) {
     setLoading(true);
     propertyService
       .getMyProperties()
-      .then((res) => {
-        if (res && res.data) {
-          setMyListings(res.data);
-        }
+      .then((res: any) => {
+        const list = Array.isArray(res) ? res : res?.data || [];
+        setMyListings(list);
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error('Lỗi nạp tin đăng:', err);
+      })
       .finally(() => setLoading(false));
   };
 

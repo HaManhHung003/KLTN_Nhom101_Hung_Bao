@@ -11,7 +11,6 @@ import {
   CheckCircle2,
   ArrowLeft,
   RefreshCw,
-  Sparkles,
   AlertCircle,
   Loader2,
 } from 'lucide-react'
@@ -32,7 +31,6 @@ export function RegisterPage() {
   // OTP State
   const [step, setStep] = useState<1 | 2 | 3>(1) // 1: Fill Form, 2: Enter OTP, 3: Success
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', ''])
-  const [demoOtp, setDemoOtp] = useState<string>('')
   const [timer, setTimer] = useState<number>(60)
   const [canResend, setCanResend] = useState<boolean>(false)
 
@@ -40,6 +38,7 @@ export function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [otpError, setOtpError] = useState<string | null>(null)
+  const [successMsg, setSuccessMsg] = useState<string | null>(null)
 
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([])
 
@@ -65,8 +64,8 @@ export function RegisterPage() {
     }
   }, [step])
 
-  // Generate random 6-digit OTP and send to Email
-  function handleSendOtp(e?: React.FormEvent) {
+  // Gửi OTP qua API backend (email thật)
+  async function handleSendOtp(e?: React.FormEvent) {
     if (e) e.preventDefault()
     setError(null)
 
@@ -90,17 +89,24 @@ export function RegisterPage() {
 
     setLoading(true)
 
-    setTimeout(() => {
-      // Generate a 6-digit random code
-      const generatedCode = Math.floor(100000 + Math.random() * 900000).toString()
-      setDemoOtp(generatedCode)
+    try {
+      // Gọi API backend để sinh và gửi OTP qua email thật
+      const res = await authService.sendOtp(email.trim(), name.trim())
+      setSuccessMsg(res.message)
       setOtpDigits(['', '', '', '', '', ''])
       setStep(2)
       setTimer(60)
       setCanResend(false)
-      setLoading(false)
       setOtpError(null)
-    }, 600)
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Không thể gửi OTP. Vui lòng kiểm tra lại email hoặc thử sau.'
+      setError(Array.isArray(msg) ? msg.join('; ') : msg)
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Handle OTP digit input changes
@@ -136,19 +142,27 @@ export function RegisterPage() {
     }
   }
 
-  // Resend OTP
-  function handleResendOtp() {
+  // Gửi lại OTP
+  async function handleResendOtp() {
     if (!canResend) return
-    const newCode = Math.floor(100000 + Math.random() * 900000).toString()
-    setDemoOtp(newCode)
-    setOtpDigits(['', '', '', '', '', ''])
-    setTimer(60)
-    setCanResend(false)
+    setLoading(true)
     setOtpError(null)
-    otpInputRefs.current[0]?.focus()
+    try {
+      await authService.sendOtp(email.trim(), name.trim())
+      setOtpDigits(['', '', '', '', '', ''])
+      setTimer(60)
+      setCanResend(false)
+      otpInputRefs.current[0]?.focus()
+      setSuccessMsg('Mã OTP mới đã được gửi. Vui lòng kiểm tra hộp thư.')
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Không thể gửi lại OTP.'
+      setOtpError(Array.isArray(msg) ? msg.join('; ') : msg)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // Verify OTP and Submit Registration to backend / AuthContext
+  // Xác thực OTP và hoàn tất đăng ký qua API backend
   async function handleVerifyAndRegister(e?: React.FormEvent) {
     if (e) e.preventDefault()
     setOtpError(null)
@@ -159,42 +173,28 @@ export function RegisterPage() {
       return
     }
 
-    if (enteredOtp !== demoOtp) {
-      setOtpError('Mã OTP không chính xác. Vui lòng kiểm tra lại mã đã gửi.')
-      return
-    }
-
     setLoading(true)
 
     try {
-      // Call backend register API
-      const res = await authService.register({
-        name: name.trim(),
+      const res = await authService.verifyOtp({
         email: email.trim(),
-        phone: phone.trim(),
+        otp: enteredOtp,
+        name: name.trim(),
         password,
+        phone: phone.trim(),
         role: accountType,
       })
 
       if (res && res.user) {
         setUser(res.user)
       }
-      setStep(3) // Transition to Success screen
+      setStep(3) // Chuyển sang màn hình thành công
     } catch (err: any) {
-      // If API fails or backend offline, fallback gracefully with demo user
-      const demoUser = {
-        id: `user-${Date.now()}`,
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-        role: accountType,
-        avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(email)}`,
-        verified: true,
-      }
-      localStorage.setItem('token', 'demo-jwt-token-123456')
-      localStorage.setItem('user', JSON.stringify(demoUser))
-      setUser(demoUser)
-      setStep(3)
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Xác thực OTP thất bại. Vui lòng thử lại.'
+      setOtpError(Array.isArray(msg) ? msg.join('; ') : msg)
     } finally {
       setLoading(false)
     }
@@ -216,7 +216,7 @@ export function RegisterPage() {
           <p className="mt-1.5 text-xs text-slate-500">
             {step === 1 && 'Điền thông tin và nhận mã xác thực OTP qua Email'}
             {step === 2 && `Mã xác thực 6 chữ số đã được gửi đến ${email}`}
-            {step === 3 && 'Tài khoản của bạn đã được khởi tạo và sẵn sàng sử dụng'}
+            {step === 3 && 'Tài khoản của bạn đã được xác thực và sẵn sàng sử dụng'}
           </p>
         </div>
 
@@ -362,18 +362,15 @@ export function RegisterPage() {
         {/* STEP 2: ENTER & VERIFY OTP CODE */}
         {step === 2 && (
           <div className="mt-5 space-y-5">
-            {/* Demo OTP Highlight Banner for Seamless Testing */}
-            <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-center shadow-sm">
-              <p className="text-xs text-emerald-800 flex items-center justify-center gap-1 font-medium">
-                <Sparkles className="h-4 w-4 text-amber-500" /> Mã OTP xác thực Email của bạn là:
-              </p>
-              <div className="mt-1.5 text-2xl font-black tracking-widest text-emerald-700 font-mono">
-                {demoOtp}
+            {/* Thông báo gửi thành công */}
+            {successMsg && (
+              <div className="rounded-2xl bg-blue-50 border border-blue-200 p-4 text-center">
+                <p className="text-xs text-blue-800 font-medium">📧 {successMsg}</p>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Kiểm tra hộp thư đến và cả thư mục <strong>Spam / Junk</strong> nếu không thấy.
+                </p>
               </div>
-              <p className="mt-1 text-[11px] text-slate-500">
-                (Nhập 6 chữ số trên để hoàn thành xác thực email)
-              </p>
-            </div>
+            )}
 
             {otpError && (
               <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-3.5 py-2.5 text-xs font-semibold text-red-800">
@@ -389,6 +386,7 @@ export function RegisterPage() {
                   key={index}
                   ref={(el) => { otpInputRefs.current[index] = el; }}
                   type="text"
+                  inputMode="numeric"
                   maxLength={1}
                   value={digit}
                   onChange={(e) => handleOtpChange(index, e.target.value)}
@@ -413,9 +411,11 @@ export function RegisterPage() {
                 <button
                   type="button"
                   onClick={handleResendOtp}
-                  className="flex items-center gap-1 font-bold text-emerald-600 hover:underline"
+                  disabled={loading}
+                  className="flex items-center gap-1 font-bold text-emerald-600 hover:underline disabled:opacity-50"
                 >
-                  <RefreshCw className="h-3.5 w-3.5" /> Gửi lại mã OTP
+                  {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                  Gửi lại mã OTP
                 </button>
               ) : (
                 <span className="text-slate-400">

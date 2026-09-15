@@ -1,4 +1,4 @@
-import { Activity, CreditCard, LayoutDashboard, ScrollText, Settings, ShieldAlert, Users, Wrench } from 'lucide-react'
+import { Activity, Building2, CreditCard, LayoutDashboard, ScrollText, Settings, ShieldAlert, Users, Wrench } from 'lucide-react'
 import { ADMIN_ROUTES } from '@/config/routes'
 import type { NavItem } from '@/config/routes'
 import { adminStats } from '@/data/mockData'
@@ -6,6 +6,7 @@ import { adminStats } from '@/data/mockData'
 export const adminNav: NavItem[] = [
   { label: 'Tổng quan', path: ADMIN_ROUTES.dashboard, icon: LayoutDashboard },
   { label: 'Hàng đợi kiểm duyệt', path: ADMIN_ROUTES.moderation, icon: ShieldAlert, badge: adminStats.pendingModeration },
+  { label: 'Quản lý tin đăng BĐS', path: ADMIN_ROUTES.properties, icon: Building2 },
   { label: 'Quản lý người dùng', path: ADMIN_ROUTES.users, icon: Users },
   { label: 'Giao dịch / Đặt cọc', path: ADMIN_ROUTES.transactions, icon: CreditCard },
   { label: 'Vận hành hệ thống', path: ADMIN_ROUTES.operations, icon: Wrench },

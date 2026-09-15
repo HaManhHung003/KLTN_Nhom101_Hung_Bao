@@ -91,4 +91,24 @@ export enum PoiCategory {
   SCHOOL = 'school',
   HOSPITAL = 'hospital',
   SUPERMARKET = 'supermarket',
+  TRANSPORT = 'transport',
+  PARK = 'park',
+  MALL = 'mall',
+}
+
+export enum BlogPostStatus {
+  DRAFT = 'draft',
+  PENDING = 'pending',
+  PUBLISHED = 'published',
+  ARCHIVED = 'archived',
+}
+
+export type BlogStatus = BlogPostStatus;
+export const BlogStatus = BlogPostStatus;
+
+export enum ContactStatus {
+  NEW = 'new',
+  READ = 'read',
+  REPLIED = 'replied',
+  CLOSED = 'closed',
 }

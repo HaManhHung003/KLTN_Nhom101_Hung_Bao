@@ -169,6 +169,11 @@ export class QueryPropertiesDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   sort?: 'newest' | 'price_asc' | 'price_desc' | 'area_desc' | 'popular';
+
+  @ApiPropertyOptional({ description: 'Lọc theo ID của người đăng' })
+  @IsOptional()
+  @IsString()
+  ownerId?: string;
 }
 
 export class NearbyQueryDto {
