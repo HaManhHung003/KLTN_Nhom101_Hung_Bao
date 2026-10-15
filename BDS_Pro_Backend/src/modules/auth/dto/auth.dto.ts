@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -25,10 +26,11 @@ export class RegisterDto {
   @MaxLength(20)
   phone?: string;
 
-  @ApiProperty({ example: '123456', minLength: 6 })
+  @ApiProperty({ example: 'Matkhau123', minLength: 8, maxLength: 16 })
   @IsString()
-  @MinLength(6, { message: 'Mật khẩu tối thiểu 6 ký tự' })
-  @MaxLength(72)
+  @Matches(/^(?=.*[A-Z])(?=.*\d)[a-zA-Z0-9]{8,16}$/, {
+    message: 'Mật khẩu phải từ 8-16 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ số và không chứa ký tự đặc biệt',
+  })
   password: string;
 
   @ApiPropertyOptional({ enum: UserRole, default: UserRole.BUYER })
@@ -64,10 +66,11 @@ export class ResetPasswordDto {
   @IsString()
   token: string;
 
-  @ApiProperty({ minLength: 6 })
+  @ApiProperty({ minLength: 8, maxLength: 16 })
   @IsString()
-  @MinLength(6)
-  @MaxLength(72)
+  @Matches(/^(?=.*[A-Z])(?=.*\d)[a-zA-Z0-9]{8,16}$/, {
+    message: 'Mật khẩu phải từ 8-16 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ số và không chứa ký tự đặc biệt',
+  })
   password: string;
 }
 
@@ -76,10 +79,11 @@ export class ChangePasswordDto {
   @IsString()
   currentPassword: string;
 
-  @ApiProperty({ minLength: 6 })
+  @ApiProperty({ minLength: 8, maxLength: 16 })
   @IsString()
-  @MinLength(6)
-  @MaxLength(72)
+  @Matches(/^(?=.*[A-Z])(?=.*\d)[a-zA-Z0-9]{8,16}$/, {
+    message: 'Mật khẩu mới phải từ 8-16 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ số và không chứa ký tự đặc biệt',
+  })
   newPassword: string;
 }
 
@@ -112,10 +116,11 @@ export class VerifyOtpDto {
   @MaxLength(150)
   name: string;
 
-  @ApiProperty({ example: 'StrongPass123!' })
+  @ApiProperty({ example: 'Matkhau123', minLength: 8, maxLength: 16 })
   @IsString()
-  @MinLength(6)
-  @MaxLength(72)
+  @Matches(/^(?=.*[A-Z])(?=.*\d)[a-zA-Z0-9]{8,16}$/, {
+    message: 'Mật khẩu phải từ 8-16 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ số và không chứa ký tự đặc biệt',
+  })
   password: string;
 
   @ApiPropertyOptional({ example: '0901234567' })

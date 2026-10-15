@@ -40,6 +40,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
       if (mode === 'login') {
         await login({ email, password });
       } else {
+        const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d)[a-zA-Z0-9]{8,16}$/;
+        if (!PASSWORD_REGEX.test(password)) {
+          setError('Mật khẩu phải từ 8-16 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ số và không chứa ký tự đặc biệt.');
+          setLoading(false);
+          return;
+        }
         await register({ name, email, password, phone, role });
       }
       onClose();
@@ -176,7 +182,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder={mode === 'register' ? 'Ví dụ: Matkhau123 (8-16 ký tự)' : '••••••••'}
                 className="w-full rounded-xl border border-slate-300 pl-10 pr-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
               />
             </div>
