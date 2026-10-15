@@ -35,7 +35,7 @@ export class FavoritesService {
       .createQueryBuilder('fav')
       .leftJoinAndSelect('fav.property', 'property')
       .leftJoinAndSelect('property.media', 'media')
-      .leftJoinAndSelect('property.agent', 'agent')
+      .leftJoinAndSelect('property.owner', 'owner')
       .where('fav.userId = :userId', { userId })
       .orderBy('fav.createdAt', 'DESC')
       .skip((dto.page - 1) * dto.limit)
