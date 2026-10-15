@@ -22,7 +22,7 @@ export function ClientHeader() {
           to={CLIENT_ROUTES.home}
           badge={user ? 'KH' : 'BĐS'}
           title="BDS Pro"
-          subtitle={user ? 'Người tìm BĐS' : 'Khách vãng lai'}
+          subtitle={user ? 'Người tìm BĐS' : 'Khách'}
           size="sm"
         />
 
