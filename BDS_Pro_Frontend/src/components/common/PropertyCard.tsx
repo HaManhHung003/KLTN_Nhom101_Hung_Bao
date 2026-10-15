@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom';
 import type { Property } from '@/types';
 import { Badge } from './Badge';
 import { formatPrice, isVerifiedLegal, propertyTypeLabels, transactionLabels } from '@/utils/format';
+import { useAuth } from '@/context/AuthContext';
+import { propertyService } from '@/services/property.service';
+import { LoginRequiredModal } from './LoginRequiredModal';
 
 interface PropertyCardProps {
   property: Property;
@@ -24,8 +27,28 @@ export function PropertyCard({
   carousel = false,
   compact = false,
 }: PropertyCardProps) {
+  const { user } = useAuth();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [favState, setFavState] = useState(isFavorite || !!property.isFavorited);
+  const [busy, setBusy] = useState(false);
   const [imageIndex, setImageIndex] = useState(0);
   const [hovering, setHovering] = useState(false);
+
+  useEffect(() => {
+    setFavState(isFavorite || !!property.isFavorited);
+  }, [isFavorite, property.isFavorited]);
+
+  // Đồng bộ trạng thái yêu thích khi có sự kiện từ các thẻ khác hoặc trang chi tiết
+  useEffect(() => {
+    const handleFavUpdated = (e: any) => {
+      if (e.detail?.propertyId === property.id) {
+        setFavState(e.detail.favorited);
+      }
+    };
+    window.addEventListener('bdspro_favorites_updated', handleFavUpdated as EventListener);
+    return () => window.removeEventListener('bdspro_favorites_updated', handleFavUpdated as EventListener);
+  }, [property.id]);
+
   const images =
     property.images && property.images.length > 0
       ? property.images
@@ -44,8 +67,46 @@ export function PropertyCard({
     if (!hovering) setImageIndex(0);
   }, [hovering]);
 
+  const handleHeartClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // 1. Nếu chưa đăng nhập -> Hiển thị Modal yêu cầu đăng nhập
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    // 2. Nếu component cha có xử lý riêng thì gọi
+    if (onToggleFavorite) {
+      onToggleFavorite();
+      return;
+    }
+
+    // 3. Tự động lưu/bỏ lưu tin vào CSDL
+    if (busy) return;
+    setBusy(true);
+    const nextState = !favState;
+    setFavState(nextState);
+
+    try {
+      const res = await propertyService.toggleFavoriteApi(property.id);
+      setFavState(res.favorited);
+      window.dispatchEvent(
+        new CustomEvent('bdspro_favorites_updated', {
+          detail: { propertyId: property.id, favorited: res.favorited },
+        })
+      );
+    } catch (err) {
+      setFavState(!nextState); // khôi phục nếu lỗi
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <article
+    <>
+      <article
       className={`group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg ${
         compact ? 'flex-row' : ''
       }`}
@@ -94,14 +155,12 @@ export function PropertyCard({
 
         <button
           type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            onToggleFavorite?.();
-          }}
-          className="absolute right-2 top-2 rounded-full bg-white/90 p-2 shadow-sm transition hover:bg-white"
-          aria-label={isFavorite ? 'Bỏ lưu tin' : 'Lưu tin'}
+          onClick={handleHeartClick}
+          className="absolute right-2 top-2 z-10 rounded-full bg-white/90 p-2 shadow-sm transition hover:bg-white hover:scale-110 active:scale-95"
+          aria-label={favState ? 'Bỏ lưu tin' : 'Lưu tin'}
+          title={favState ? 'Bỏ lưu tin' : 'Lưu tin'}
         >
-          <Heart className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-slate-600'}`} />
+          <Heart className={`h-4 w-4 transition-colors ${favState ? 'fill-red-500 text-red-500' : 'text-slate-600 hover:text-red-500'}`} />
         </button>
       </div>
 
@@ -133,5 +192,13 @@ export function PropertyCard({
         </div>
       </Link>
     </article>
+
+    <LoginRequiredModal
+      isOpen={showLoginModal}
+      onClose={() => setShowLoginModal(false)}
+      action="save"
+      redirectTo={detailPath}
+    />
+  </>
   );
 }

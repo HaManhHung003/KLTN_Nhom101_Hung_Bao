@@ -21,6 +21,7 @@ import {
 } from './dto/property.dto';
 import { Public, Roles, CurrentUser } from '../../common/decorators';
 import { UserRole, PropertyStatus } from '../../common/enums';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Poi } from './entities/poi.entity';
@@ -85,6 +86,20 @@ export class PropertiesController {
   @ApiOperation({ summary: 'Toàn bộ tin đăng hệ thống (Admin)' })
   findAllAdmin(@Query() dto: SearchPropertyDto) {
     return this.service.findAll(dto, undefined, false);
+  }
+
+  @ApiBearerAuth()
+  @Get('favorites')
+  @ApiOperation({ summary: 'Danh sách tin đăng đã lưu của người dùng' })
+  favorites(@CurrentUser('id') userId: string, @Query() dto: PaginationDto) {
+    return this.favoritesService.list(userId, dto);
+  }
+
+  @ApiBearerAuth()
+  @Get('favorites/ids')
+  @ApiOperation({ summary: 'Danh sách ID tin đăng đã lưu của người dùng' })
+  favoriteIds(@CurrentUser('id') userId: string) {
+    return this.favoritesService.ids(userId);
   }
 
   @Public()

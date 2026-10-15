@@ -18,7 +18,7 @@ export function MarketSearch({
   basePath,
   title,
   description,
-  showFavorite = false,
+  showFavorite: _showFavorite = false,
   filterStatus = 'active',
 }: MarketSearchProps) {
   const [properties, setProperties] = useState<Property[]>([])
@@ -132,8 +132,7 @@ export function MarketSearch({
               key={p.id}
               property={p}
               detailPath={`${basePath}/property/${p.id}`}
-              isFavorite={showFavorite ? p.isFavorited : false}
-              onToggleFavorite={showFavorite ? () => undefined : undefined}
+              isFavorite={!!p.isFavorited}
             />
           ))}
         </div>
