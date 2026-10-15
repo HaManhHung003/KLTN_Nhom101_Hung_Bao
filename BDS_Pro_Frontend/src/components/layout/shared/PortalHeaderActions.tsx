@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, LogIn, User as UserIcon } from 'lucide-react';
 import { LogoutButton } from '@/components/common/LogoutButton';
-import { AuthModal } from '@/components/common/AuthModal';
 import { useAuth } from '@/context/AuthContext';
 import { ADMIN_ROUTES, BROKER_ROUTES, CLIENT_ROUTES } from '@/config/routes';
 import { HeaderChatDropdown } from '@/components/chat/HeaderChatDropdown';
@@ -10,8 +9,6 @@ import { HeaderChatDropdown } from '@/components/chat/HeaderChatDropdown';
 export function PortalHeaderActions() {
   const { user, actorRole } = useAuth();
   const [openNotif, setOpenNotif] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
   if (!user) {
     return (
@@ -20,32 +17,20 @@ export function PortalHeaderActions() {
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
           Khách vãng lai
         </span>
-        <button
-          onClick={() => {
-            setAuthMode('login');
-            setAuthModalOpen(true);
-          }}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+        <Link
+          to="/login"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 shadow-sm"
         >
-          <LogIn className="h-4 w-4" />
+          <LogIn className="h-4 w-4 text-slate-500" />
           <span>Đăng nhập</span>
-        </button>
-        <button
-          onClick={() => {
-            setAuthMode('register');
-            setAuthModalOpen(true);
-          }}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-700 shadow-sm"
+        </Link>
+        <Link
+          to="/register"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-700 shadow-sm"
         >
           <UserIcon className="h-4 w-4" />
           <span>Đăng ký</span>
-        </button>
-
-        <AuthModal
-          isOpen={authModalOpen}
-          onClose={() => setAuthModalOpen(false)}
-          initialMode={authMode}
-        />
+        </Link>
       </div>
     );
   }
