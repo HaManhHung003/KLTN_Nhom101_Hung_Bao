@@ -102,7 +102,7 @@ export function BuyerHome() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {aiRecommended.map((p) => (
-              <PropertyCard key={p.id} property={p} isFavorite={false} />
+              <PropertyCard key={p.id} property={p} isFavorite={!!p.isFavorited} />
             ))}
           </div>
         )}
@@ -119,7 +119,7 @@ export function BuyerHome() {
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {active.slice(0, 8).map((p) => (
-            <PropertyCard key={p.id} property={p} isFavorite={false} />
+            <PropertyCard key={p.id} property={p} isFavorite={!!p.isFavorited} />
           ))}
         </div>
       </section>

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { BrandLogo } from '@/components/layout/shared/BrandLogo'
 import { PortalHeaderActions } from '@/components/layout/shared/PortalHeaderActions'
 import { ADMIN_ROUTES, BROKER_ROUTES, CLIENT_ROUTES } from '@/config/routes'
+import { useAuth } from '@/context/AuthContext'
 
 const HEADER_NAV = [
   { label: 'Trang chủ', path: CLIENT_ROUTES.home },
@@ -12,10 +13,18 @@ const HEADER_NAV = [
 ] as const
 
 export function ClientHeader() {
+  const { user } = useAuth()
+
   return (
     <header className="portal-header">
       <div className="mx-auto flex h-14 min-h-[3.5rem] max-w-7xl items-center justify-between gap-2 px-3 sm:h-16 sm:gap-4 sm:px-6">
-        <BrandLogo to={CLIENT_ROUTES.home} badge="KH" title="BDS Pro" subtitle="Người tìm BĐS" size="sm" />
+        <BrandLogo
+          to={CLIENT_ROUTES.home}
+          badge={user ? 'KH' : 'BĐS'}
+          title="BDS Pro"
+          subtitle={user ? 'Người tìm BĐS' : 'Khách'}
+          size="sm"
+        />
 
         <nav className="hidden items-center gap-0.5 lg:flex">
           {HEADER_NAV.map((item) => (

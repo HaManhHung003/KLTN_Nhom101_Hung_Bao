@@ -44,9 +44,10 @@ import { EditListingForm } from '@/pages/shared/EditListingForm';
 export function AppRouter() {
   return (
     <Routes>
-      {/* ─── PUBLIC PORTAL ─── */}
-      <Route index element={<LandingPage />} />
-      <Route path="bat-dong-san" element={<ClientSearchPage />} />
+      {/* ─── PUBLIC PORTAL: VÀO THẲNG GIAO DIỆN KHÁCH VÃNG LAI (GUEST) ─── */}
+      <Route path="/" element={<Navigate to="/client" replace />} />
+      <Route path="/landing" element={<LandingPage />} />
+      <Route path="bat-dong-san" element={<Navigate to="/client/tim-kiem" replace />} />
       <Route path="bat-dong-san/:id" element={<ClientPropertyDetailPage />} />
 
       {/* Auth pages (no chrome) */}

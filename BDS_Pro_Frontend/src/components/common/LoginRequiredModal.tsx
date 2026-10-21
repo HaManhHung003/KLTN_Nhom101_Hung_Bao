@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 import { Lock, X, UserPlus, LogIn, Sparkles } from 'lucide-react'
 
 interface LoginRequiredModalProps {
@@ -13,7 +14,7 @@ interface LoginRequiredModalProps {
 const actionCopy: Record<NonNullable<LoginRequiredModalProps['action']>, { title: string; desc: string }> = {
   save: {
     title: 'Lưu tin yêu thích',
-    desc: 'Đăng nhập để lưu BĐS vào danh sách yêu thích và nhận thông báo khi có cập nhật.',
+    desc: 'Đăng nhập để lưu BĐS vào danh sách yêu thích và xem lại trong mục Đã lưu.',
   },
   book: {
     title: 'Đặt lịch xem BĐS',
@@ -57,8 +58,8 @@ export function LoginRequiredModal({
     ? `/register?redirect=${encodeURIComponent(redirectTo)}`
     : '/register'
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
       <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
         <button
           type="button"
@@ -116,6 +117,7 @@ export function LoginRequiredModal({
           <div>✓ Đặt cọc</div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

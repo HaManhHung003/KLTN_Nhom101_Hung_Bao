@@ -82,8 +82,24 @@ export function RegisterPage() {
       setError('Vui lòng nhập Số điện thoại.')
       return
     }
-    if (!password || password.length < 6) {
-      setError('Mật khẩu phải chứa ít nhất 6 ký tự.')
+    if (!password) {
+      setError('Vui lòng nhập Mật khẩu.')
+      return
+    }
+    if (password.length < 8 || password.length > 16) {
+      setError('Mật khẩu phải từ 8 đến 16 ký tự.')
+      return
+    }
+    if (!/[A-Z]/.test(password)) {
+      setError('Mật khẩu phải chứa ít nhất 1 chữ viết hoa (A-Z).')
+      return
+    }
+    if (!/\d/.test(password)) {
+      setError('Mật khẩu phải chứa ít nhất 1 chữ số (0-9).')
+      return
+    }
+    if (/[^a-zA-Z0-9]/.test(password)) {
+      setError('Mật khẩu không được chứa ký tự đặc biệt.')
       return
     }
 
@@ -314,9 +330,27 @@ export function RegisterPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="•••••••• (Ít nhất 6 ký tự)"
+                    placeholder="Ví dụ: Matkhau123 (8-16 ký tự)"
                     className="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
+                </div>
+                {/* Password Criteria Checklist */}
+                <div className="mt-2 space-y-1 rounded-xl bg-slate-50 p-2.5 text-[11px] text-slate-500 border border-slate-100">
+                  <p className="font-semibold text-slate-700">Yêu cầu bảo mật mật khẩu:</p>
+                  <div className="grid grid-cols-2 gap-1">
+                    <span className={`flex items-center gap-1 ${password.length >= 8 && password.length <= 16 ? 'text-emerald-600 font-semibold' : ''}`}>
+                      {password.length >= 8 && password.length <= 16 ? '✓' : '•'} 8 - 16 ký tự
+                    </span>
+                    <span className={`flex items-center gap-1 ${/[A-Z]/.test(password) ? 'text-emerald-600 font-semibold' : ''}`}>
+                      {/[A-Z]/.test(password) ? '✓' : '•'} Ít nhất 1 chữ hoa
+                    </span>
+                    <span className={`flex items-center gap-1 ${/\d/.test(password) ? 'text-emerald-600 font-semibold' : ''}`}>
+                      {/\d/.test(password) ? '✓' : '•'} Ít nhất 1 số
+                    </span>
+                    <span className={`flex items-center gap-1 ${password && !/[^a-zA-Z0-9]/.test(password) ? 'text-emerald-600 font-semibold' : ''}`}>
+                      {password && !/[^a-zA-Z0-9]/.test(password) ? '✓' : '•'} Không ký tự đặc biệt
+                    </span>
+                  </div>
                 </div>
               </div>
 

@@ -225,6 +225,11 @@ export function ClientPropertyDetailPage() {
       const res = await propertyService.toggleFavoriteApi(property.id);
       setProperty({ ...property, isFavorited: res.favorited });
       setToast(res.favorited ? 'Đã lưu tin vào danh sách yêu thích' : 'Đã bỏ lưu tin');
+      window.dispatchEvent(
+        new CustomEvent('bdspro_favorites_updated', {
+          detail: { propertyId: property.id, favorited: res.favorited },
+        })
+      );
     } catch {
       setProperty({ ...property, isFavorited: previous });
       setToast('Không thể lưu tin, vui lòng thử lại');

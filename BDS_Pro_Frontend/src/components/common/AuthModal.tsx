@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Mail, Lock, User as UserIcon, Phone } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import type { UserRole } from '@/types';
@@ -14,6 +15,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Sync mode whenever initialMode or isOpen changes
+  useEffect(() => {
+    setMode(initialMode);
+    setError(null);
+  }, [initialMode, isOpen]);
 
   // Form states
   const [email, setEmail] = useState('');
@@ -33,6 +40,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
       if (mode === 'login') {
         await login({ email, password });
       } else {
+        const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d)[a-zA-Z0-9]{8,16}$/;
+        if (!PASSWORD_REGEX.test(password)) {
+          setError('Mật khẩu phải từ 8-16 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ số và không chứa ký tự đặc biệt.');
+          setLoading(false);
+          return;
+        }
         await register({ name, email, password, phone, role });
       }
       onClose();
@@ -43,8 +56,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl transition-all">
         {/* Close Button */}
         <button
@@ -169,7 +182,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder={mode === 'register' ? 'Ví dụ: Matkhau123 (8-16 ký tự)' : '••••••••'}
                 className="w-full rounded-xl border border-slate-300 pl-10 pr-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
               />
             </div>
@@ -214,6 +227,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

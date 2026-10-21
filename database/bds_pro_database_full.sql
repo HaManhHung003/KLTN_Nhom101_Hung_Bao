@@ -315,11 +315,11 @@ INSERT INTO `properties` (`id`, `title`, `type`, `transaction_type`, `price`, `a
 
 -- MEDIA (ẢNH BĐS)
 INSERT INTO `media` (`id`, `url`, `type`, `sort_order`, `property_id`, `created_at`) VALUES
-('m1', 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800', 'image', 1, 'p1', NOW()),
-('m2', 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800', 'image', 2, 'p1', NOW()),
-('m3', 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800', 'image', 1, 'p2', NOW()),
-('m4', 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800', 'image', 1, 'p3', NOW()),
-('m5', 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800', 'image', 1, 'p4', NOW());
+-- ('m1', 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800', 'image', 1, 'p1', NOW()),
+-- ('m2', 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800', 'image', 2, 'p1', NOW()),
+-- ('m3', 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800', 'image', 1, 'p2', NOW()),
+-- ('m4', 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800', 'image', 1, 'p3', NOW()),
+-- ('m5', 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800', 'image', 1, 'p4', NOW());
 
 -- YÊU THÍCH
 INSERT INTO `favorites` (`id`, `user_id`, `property_id`, `created_at`) VALUES

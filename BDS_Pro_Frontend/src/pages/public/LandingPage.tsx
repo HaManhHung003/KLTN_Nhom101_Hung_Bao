@@ -28,7 +28,7 @@ export function LandingPage() {
               to="/login"
               className="rounded-xl bg-brand-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 sm:px-5"
             >
-              Đăng nhập Demo
+              Đăng nhập
             </Link>
           </div>
         </div>
@@ -54,10 +54,10 @@ export function LandingPage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link
-                to="/login"
+                to="/client"
                 className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 font-semibold text-brand-700 transition hover:bg-brand-50"
               >
-                Khám phá ngay
+                Khám phá ngay (Chế độ Khách)
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <a

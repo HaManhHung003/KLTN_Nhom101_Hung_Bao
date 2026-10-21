@@ -44,7 +44,6 @@ export function ClientSearchPage() {
     priceMax: initialType === 'rent' ? 50_000_000 : 20_000_000_000,
   });
   const [selectedId, setSelectedId] = useState<string>();
-  const [favorites, setFavorites] = useState<string[]>([]);
 
   // Fetch real properties from NestJS API
   useEffect(() => {
@@ -88,15 +87,6 @@ export function ClientSearchPage() {
       return true;
     });
   }, [realProperties, filters]);
-
-  async function toggleFavorite(id: string) {
-    try {
-      await propertyService.toggleFavorite(id);
-      setFavorites((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-    } catch {
-      setFavorites((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-    }
-  }
 
   function patchFilters(patch: Partial<SearchFilters>) {
     setFilters((prev) => {
@@ -151,8 +141,7 @@ export function ClientSearchPage() {
                   <PropertyCard
                     property={p}
                     detailPath={CLIENT_ROUTES.property(p.id)}
-                    isFavorite={favorites.includes(p.id)}
-                    onToggleFavorite={() => toggleFavorite(p.id)}
+                    isFavorite={!!p.isFavorited}
                     carousel
                     compact
                   />
