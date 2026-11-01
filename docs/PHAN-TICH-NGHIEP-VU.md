@@ -309,6 +309,49 @@ Hệ thống phân chia **4 vai trò người dùng rõ ràng**, mỗi vai trò 
 | Cấu hình hệ thống | — | — | — | ✓ |
 | Push Notification | — | ✓ | ✓ | ✓ |
 
+---
+
+### 5.1.1. Ma trận chức năng nhóm Tìm kiếm và Khám phá Bất động sản
+
+Bảng phân tích chức năng dùng chung thuộc nhóm **Tìm kiếm và khám phá bất động sản** cho 3 tác nhân chính trong hệ thống:
+* **Client:** Người truy cập hệ thống chưa đăng nhập (Guest).
+* **Customer:** Khách hàng đã đăng ký và đăng nhập tài khoản.
+* **Seller:** Người bán hoặc môi giới bất động sản đã được Admin cấp tài khoản.
+
+| STT | Chức năng | Client | Customer | Seller |
+| --- | --- |:---:|:---:|:---:|
+| 1 | Tìm kiếm BĐS | ✓ | ✓ | ✓ |
+| 2 | Lọc BĐS | ✓ | ✓ | ✓ |
+| 3 | Sắp xếp kết quả | ✓ | ✓ | ✓ |
+| 4 | Tìm kiếm trên bản đồ | ✓ | ✓ | ✓ |
+| 5 | Tìm kiếm theo bán kính | ✓ | ✓ | ✓ |
+| 6 | Xem tiện ích xung quanh | ✓ | ✓ | ✓ |
+| 7 | Sử dụng AI Chatbot | ✓ | ✓ | ✓ |
+| 8 | Gợi ý địa chỉ tự động (Autocomplete) | ✓ | ✓ | ✓ |
+| 9 | Tự động định vị GPS vị trí hiện tại | ✓ | ✓ | ✓ |
+| 10 | Tra cứu địa chỉ trên bản đồ | ✓ | ✓ | ✓ |
+| 11 | Xem trước BĐS trên bản đồ (Marker Card Popup) | ✓ | ✓ | ✓ |
+| 12 | Xem chi tiết thông tin & hình ảnh BĐS | ✓ | ✓ | ✓ |
+| 13 | AI Chatbot phân tích BĐS theo vị trí GPS | ✓ | ✓ | ✓ |
+| 14 | So sánh bất động sản | ✓ | ✓ | ✓ |
+| 15 | Lưu lịch sử hội thoại AI Chatbot | – | ✓ | ✓ |
+
+#### A. Phạm vi của nhóm chức năng Tìm kiếm và Khám phá BĐS
+* Nhóm chức năng này đóng vai trò là "cửa ngõ" thông tin của toàn hệ thống, phục vụ chu trình tiếp cận ban đầu của mọi tác nhân (khảo sát thị trường, so sánh giá cả, tra cứu không gian địa lý, tìm kiếm tiện ích xung quanh và nhận tư vấn ban đầu từ AI).
+* Toàn bộ các chức năng trong nhóm đều hướng tới mục tiêu tối ưu trải nghiệm người dùng, đảm bảo tốc độ phản hồi nhanh, giao diện bản đồ trực quan, thao tác lọc mượt mà mà không bắt buộc đăng nhập.
+* Nhóm này **tuyệt đối không bao gồm** các chức năng thuộc về quản lý tin đăng, đặt lịch xem nhà, nhắn tin giao dịch trực tiếp giữa các bên hoặc nghiệp vụ thanh toán/đặt cọc.
+
+#### B. Phân quyền và giới hạn của AI Chatbot đối với Client (chưa đăng nhập)
+1. **Quyền hạn được phép sử dụng đối với Client:**
+   - **Tư vấn thông tin thị trường:** Khách vãng lai có thể hỏi AI về mặt bằng giá căn hộ theo từng khu vực, quy hoạch hạ tầng giao thông hoặc giải đáp các khái niệm pháp lý phổ biến (sổ hồng, sổ đỏ, hợp đồng mua bán, điều kiện vay ngân hàng).
+   - **Gợi ý BĐS thông minh theo GPS:** AI Chatbot tự động lấy tọa độ vị trí hiện tại của Client để tìm kiếm và đề xuất các căn hộ/BĐS trong bán kính phù hợp với yêu cầu về giá (ví dụ: *"tìm căn hộ gần tôi dưới 2,5 tỷ"*).
+2. **Những giới hạn của AI Chatbot khi Client chưa đăng nhập:**
+   - **Không lưu lịch sử hội thoại:** Dữ liệu chat của Client chỉ được lưu tạm thời trên bộ nhớ phiên (RAM/Session) của trình duyệt. Khi người dùng tải lại trang (F5) hoặc đóng trình duyệt, lịch sử trò chuyện sẽ được làm mới nhằm bảo mật dữ liệu.
+   - **Không cá nhân hóa theo hồ sơ:** Không thể tự động ghi nhớ sở thích lâu dài, danh sách theo dõi hay ngân sách cá nhân để đưa ra các gợi ý định kỳ.
+   - **Không thể thực hiện các hành động cần định danh:** Khi Client bấm vào các nút điều hướng phát sinh giao dịch từ câu trả lời của Chatbot (như *"Đặt lịch xem nhà ngay"*, *"Lưu tin vào danh sách yêu thích"*, *"Liên hệ môi giới qua tin nhắn bảo mật"*), hệ thống sẽ hiển thị modal yêu cầu đăng nhập/đăng ký tài khoản để định danh và bảo vệ quyền lợi giao dịch.
+
+---
+
 ### 5.2. Hành trình người dùng (User Journey)
 
 #### Người tìm BĐS – Thuê căn hộ
@@ -604,6 +647,10 @@ flowchart TD
 | FR-S05 | Cluster marker khi zoom out | Trung bình |
 | FR-S06 | Lưu yêu thích, so sánh tối đa N BĐS | Trung bình |
 | FR-S07 | Lịch sử tìm kiếm gần đây | Thấp |
+| FR-S08 | Tự động định vị GPS độ chính xác cao của người dùng khi truy cập (Web & Mobile) | Cao |
+| FR-S09 | Phân giải địa chỉ ngược (Reverse Geocoding) từ GPS sang địa danh hành chính | Cao |
+| FR-S10 | Gợi ý địa chỉ tự động (Autocomplete) cho Quận/Huyện, Dự án lớn và Tuyến đường | Cao |
+| FR-S11 | Cô lập ngữ cảnh xếp chồng (Stacking Isolation) ngăn bản đồ che khuất menu tìm kiếm | Cao |
 
 ### 7.5. Module Lịch hẹn xem BĐS
 
@@ -625,6 +672,7 @@ flowchart TD
 | FR-C04 | Chatbot AI: thu thập nhu cầu, trả lời FAQ | Cao |
 | FR-C05 | Chatbot gợi ý danh sách BĐS phù hợp | Cao |
 | FR-C06 | Chuyển tiếp từ chatbot sang môi giới thật | Trung bình |
+| FR-C07 | Trợ lý AI tích hợp vị trí GPS thời gian thực: phân tích tọa độ & gợi ý BĐS trong bán kính | Cao |
 
 ### 7.7. Module Thanh toán & Đặt cọc
 

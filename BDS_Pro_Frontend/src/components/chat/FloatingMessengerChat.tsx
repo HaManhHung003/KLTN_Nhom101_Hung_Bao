@@ -7,7 +7,6 @@ import {
   MessageCircle,
   RefreshCw,
   Send,
-  Shield,
   Sparkles,
   X,
 } from 'lucide-react';
@@ -18,10 +17,22 @@ import { formatPrice } from '@/utils/format';
 import { CLIENT_ROUTES } from '@/config/routes';
 import { AiPropertyMiniCard } from '@/components/chat/AiPropertyMiniCard';
 import { AI_QUICK_PROMPTS, type AiChatMessage } from '@/types/chat';
-import { aiChatSession as seedSession, properties } from '@/data/mockData';
+import { AiChatEngine } from '@/services/aiChat.service';
+import { useUserLocation } from '@/context/LocationContext';
+import type { Property } from '@/types';
+
+const INITIAL_AI_MESSAGES: AiChatMessage[] = [
+  {
+    id: 'ai-welcome-1',
+    role: 'bot',
+    content:
+      'Xin chào! Tôi là Trợ lý AI BĐS Pro 🤖.\nTôi có thể hỗ trợ bạn:\n• Tìm kiếm BĐS theo ngân sách & khu vực\n• Thẩm định và tư vấn pháp lý sổ hồng\n• Tính toán lãi suất & hạn mức vay ngân hàng\n\nBạn đang quan tâm đến loại hình BĐS nào?',
+  },
+];
 
 export function FloatingMessengerChat() {
   const navigate = useNavigate();
+  const { userLocation } = useUserLocation();
   const state = useSyncExternalStore(
     (cb) => floatingChat.subscribe(cb),
     () => floatingChat.getState()
@@ -29,6 +40,9 @@ export function FloatingMessengerChat() {
 
   const currentUser = authStorage.getUser();
   const currentUserId = currentUser?.id || '';
+
+  // Real properties for card resolution
+  const [loadedProperties, setLoadedProperties] = useState<Property[]>([]);
 
   // All conversations list for the vertical stack rail
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
@@ -41,7 +55,7 @@ export function FloatingMessengerChat() {
   const [sending, setSending] = useState(false);
 
   // AI Chat states
-  const [aiMessages, setAiMessages] = useState<AiChatMessage[]>(seedSession);
+  const [aiMessages, setAiMessages] = useState<AiChatMessage[]>(INITIAL_AI_MESSAGES);
   const [aiInput, setAiInput] = useState('');
   const [aiTyping, setAiTyping] = useState(false);
 
@@ -57,7 +71,7 @@ export function FloatingMessengerChat() {
     }
   };
 
-  // 1. Fetch conversations list
+  // 1. Fetch conversations list & cache properties
   const fetchAllConversations = async () => {
     try {
       const convs = await chatService.getConversations();
@@ -67,6 +81,11 @@ export function FloatingMessengerChat() {
       return [];
     }
   };
+
+  useEffect(() => {
+    AiChatEngine.getRealProperties().then((props) => setLoadedProperties(props));
+    fetchAllConversations();
+  }, []);
 
   // 2. Fetch active conversation details & messages for Broker tab
   const loadChatData = async (convId: string, silent = false) => {
@@ -89,11 +108,6 @@ export function FloatingMessengerChat() {
       if (!silent) setLoading(false);
     }
   };
-
-  // Initial load
-  useEffect(() => {
-    fetchAllConversations();
-  }, []);
 
   // When active conversation changes or opened
   useEffect(() => {
@@ -162,32 +176,56 @@ export function FloatingMessengerChat() {
   // Handle AI prompt
   function resolveProperties(ids?: string[]) {
     if (!ids?.length) return [];
-    return ids.map((id) => properties.find((p) => p.id === id)).filter(Boolean) as typeof properties;
+    return ids.map((id) => loadedProperties.find((p) => p.id === id)).filter(Boolean) as Property[];
   }
 
-  function sendAiPrompt(text: string) {
+  async function sendAiPrompt(text: string) {
     const userMsg: AiChatMessage = { id: `u-${Date.now()}`, role: 'user', content: text };
     setAiMessages((prev) => [...prev, userMsg]);
     setAiTyping(true);
 
-    setTimeout(() => {
+    try {
       const lower = text.toLowerCase();
-      const isRedBook =
-        lower.includes('sổ hồng') ||
-        lower.includes('so hong') ||
-        lower.includes('red book') ||
-        lower.includes('pháp lý');
+      let coords: { lat: number; lng: number } | null = userLocation;
+      if (!coords && (lower.includes('gần') || lower.includes('quanh') || lower.includes('đây') || lower.includes('tôi'))) {
+        if (navigator.geolocation) {
+          coords = await new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+              () => resolve({ lat: 10.7769, lng: 106.7009 }),
+              { timeout: 4000 }
+            );
+          });
+        }
+      }
+
+      const res = await AiChatEngine.generateReply(text, coords);
+      // Ensure properties are in state
+      if (res.matchedProperties.length > 0) {
+        setLoadedProperties((prev) => {
+          const map = new Map(prev.map((p) => [p.id, p]));
+          res.matchedProperties.forEach((p) => map.set(p.id, p));
+          return Array.from(map.values());
+        });
+      }
+
       const botReply: AiChatMessage = {
         id: `b-${Date.now()}`,
         role: 'bot',
-        content: isRedBook
-          ? 'Dưới đây là các tin đăng đã được thẩm định pháp lý sổ hồng riêng minh bạch tại TP.HCM:'
-          : 'Dựa trên tiêu chí bạn tìm kiếm, tôi đề xuất các bất động sản phù hợp nhất sau đây:',
-        propertyIds: isRedBook ? ['p2', 'p5', 'p7'] : ['p1', 'p4', 'p2'],
+        content: res.reply,
+        propertyIds: res.matchedProperties.map((p) => p.id),
       };
       setAiMessages((prev) => [...prev, botReply]);
+    } catch {
+      const botReply: AiChatMessage = {
+        id: `b-${Date.now()}`,
+        role: 'bot',
+        content: 'Tôi đã tiếp nhận yêu cầu của bạn. Hãy thử chọn các câu hỏi gợi ý bên dưới hoặc tìm theo khoảng giá cụ thể nhé!',
+      };
+      setAiMessages((prev) => [...prev, botReply]);
+    } finally {
       setAiTyping(false);
-    }, 500);
+    }
   }
 
   function handleSendAi() {
@@ -197,40 +235,48 @@ export function FloatingMessengerChat() {
     sendAiPrompt(text);
   }
 
-  // ── CLOSED STATE: CHAT BUTTONS STACKED VERTICALLY ON BOTTOM RIGHT ──
+  // ── CLOSED STATE: SLEEK FLOATING DOCK ON BOTTOM RIGHT ──
   if (!state.isOpen) {
     return (
-      <div className="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-40 flex flex-col items-center gap-2.5">
-        {/* 1. Broker Chat Button (Stacked on top) */}
-        <button
-          type="button"
-          onClick={() => {
-            if (conversations.length > 0) {
-              floatingChat.open(conversations[0].id);
-            } else {
-              floatingChat.open();
-            }
-          }}
-          className="flex h-12 w-12 sm:h-13 sm:w-13 items-center justify-center rounded-full bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-xl shadow-emerald-500/30 ring-3 ring-white hover:scale-105 active:scale-95 transition relative overflow-hidden"
-          title="Mở Chat với Môi giới"
-        >
-          {conversation && other ? (
-            <img src={otherAvatar} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <MessageCircle className="h-6 w-6" />
-          )}
-          <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-white" />
-        </button>
+      <div className="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-40 flex items-center gap-2">
+        {/* Floating Unified Chat Dock */}
+        <div className="flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/95 p-1.5 shadow-2xl backdrop-blur-xl ring-1 ring-slate-900/5 hover:shadow-emerald-500/10 transition-all">
+          {/* 1. Broker Chat Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (conversations.length > 0) {
+                floatingChat.open(conversations[0].id);
+              } else {
+                floatingChat.open();
+              }
+            }}
+            className="flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition cursor-pointer"
+            title="Chat trực tiếp với môi giới"
+          >
+            <div className="relative flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+              <MessageCircle className="h-3.5 w-3.5" />
+              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" />
+            </div>
+            <span className="hidden sm:inline">Môi giới</span>
+          </button>
 
-        {/* 2. AI Assistant Button (Stacked right underneath) */}
-        <button
-          type="button"
-          onClick={() => floatingChat.openAi()}
-          className="flex h-12 w-12 sm:h-13 sm:w-13 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-xl shadow-violet-500/30 ring-3 ring-white hover:scale-105 active:scale-95 transition"
-          title="Mở Trợ lý AI Bất động sản"
-        >
-          <Bot className="h-6 w-6" />
-        </button>
+          <div className="h-4 w-px bg-slate-200" />
+
+          {/* 2. AI Assistant Button with Sparkle Gradient */}
+          <button
+            type="button"
+            onClick={() => floatingChat.openAi()}
+            className="flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-md shadow-violet-500/20 hover:from-violet-700 hover:to-indigo-700 active:scale-95 transition cursor-pointer"
+            title="Trợ lý AI BĐS Pro"
+          >
+            <Bot className="h-3.5 w-3.5 animate-pulse text-violet-200" />
+            <span>Trợ lý AI</span>
+            <span className="inline-flex items-center justify-center rounded-full bg-white/20 px-1.5 py-0.2 text-[9px] font-extrabold uppercase tracking-wider">
+              GPS
+            </span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -330,43 +376,18 @@ export function FloatingMessengerChat() {
                   <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-white" />
                 </div>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-1">
-                    <h3 className="font-bold text-slate-900 text-xs truncate">{otherName}</h3>
-                    {other?.role === 'agent' && (
-                      <span title="Môi giới xác minh" className="inline-flex">
-                        <Shield className="h-3 w-3 text-brand-600 shrink-0" />
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[10px] text-slate-400 truncate">
-                    {other?.phone ? other.phone : 'Môi giới BĐS Pro'}
-                  </p>
+                  <h3 className="font-bold text-slate-900 text-xs truncate">{otherName}</h3>
+                  <p className="text-[10px] text-emerald-600 font-medium">Đang hoạt động</p>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Window controls */}
-          <div className="flex items-center gap-0.5 text-slate-400">
-            <button
-              type="button"
-              onClick={() => {
-                floatingChat.close();
-                navigate(
-                  state.activeTab === 'broker' && state.conversationId
-                    ? `${CLIENT_ROUTES.chat}?conv=${state.conversationId}`
-                    : CLIENT_ROUTES.chat
-                );
-              }}
-              className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-slate-700 transition"
-              title="Mở toàn màn hình"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </button>
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => floatingChat.close()}
-              className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-slate-700 transition"
+              className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
               title="Đóng chat"
             >
               <X className="h-4 w-4" />
@@ -377,71 +398,66 @@ export function FloatingMessengerChat() {
         {/* ── TAB 1: BROKER CHAT BODY ── */}
         {state.activeTab === 'broker' && (
           <div className="flex-1 flex flex-col min-h-0">
-            {/* Attached property banner */}
+            {/* Property pinned banner if attached */}
             {conversation?.property && (
-              <div className="flex items-center justify-between border-b border-emerald-100 bg-emerald-50/70 px-3 py-1.5 text-xs shrink-0">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <Building2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                  <span className="font-semibold text-emerald-950 truncate max-w-[150px] sm:max-w-[200px]">
-                    {conversation.property.title}
-                  </span>
-                  <span className="text-[11px] text-emerald-700 font-bold hidden sm:inline shrink-0">
-                    ({formatPrice(conversation.property.price, conversation.property.transactionType as any)})
-                  </span>
+              <div className="border-b border-slate-100 bg-slate-50/80 px-3 py-2 flex items-center justify-between gap-2 shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 shrink-0">
+                    <Building2 className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-slate-900 truncate">
+                      {conversation.property.title}
+                    </p>
+                    <p className="text-[10px] font-bold text-emerald-600">
+                      {formatPrice(conversation.property.price, conversation.property.transactionType as any)}
+                    </p>
+                  </div>
                 </div>
-                <a
-                  href={`/client/property/${conversation.property.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="shrink-0 rounded-lg bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-emerald-700 transition ml-1"
+                <button
+                  type="button"
+                  onClick={() => navigate(CLIENT_ROUTES.property(conversation.property!.id))}
+                  className="rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition shrink-0"
+                  title="Xem chi tiết BĐS này"
                 >
-                  Xem tin
-                </a>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </button>
               </div>
             )}
 
-            {/* Messages list */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50/40">
+            {/* Broker Messages thread */}
+            <div className="flex-1 space-y-3 overflow-y-auto p-3 bg-white">
               {loading && messages.length === 0 ? (
-                <div className="py-16 text-center text-xs text-slate-400">
-                  <RefreshCw className="mx-auto h-5 w-5 animate-spin text-brand-600 mb-2" />
+                <div className="py-12 text-center text-xs text-slate-400">
+                  <RefreshCw className="mx-auto h-4 w-4 animate-spin text-emerald-600 mb-1" />
                   Đang tải tin nhắn...
                 </div>
               ) : messages.length === 0 ? (
-                <div className="py-16 text-center text-xs text-slate-400">
-                  <MessageCircle className="mx-auto h-10 w-10 text-slate-300 mb-2" />
-                  <p className="font-semibold text-slate-700">Chưa có tin nhắn nào</p>
-                  <p className="mt-1 text-slate-400">Gửi lời chào để bắt đầu trao đổi với môi giới!</p>
+                <div className="py-10 text-center text-xs text-slate-400">
+                  <MessageCircle className="mx-auto h-8 w-8 text-slate-200 mb-2" />
+                  <p className="font-semibold text-slate-600">Bắt đầu trò chuyện với môi giới</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Đặt câu hỏi về BĐS, pháp lý hoặc hẹn lịch xem nhà</p>
                 </div>
               ) : (
-                messages.map((msg) => {
-                  const isOwn = msg.senderId === currentUserId;
+                messages.map((m) => {
+                  const isMine = m.senderId === currentUserId;
                   return (
-                    <div key={msg.id} className={`flex items-end gap-2 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                      {!isOwn && (
-                        <img
-                          src={otherAvatar}
-                          alt=""
-                          className="h-6 w-6 rounded-full object-cover border border-slate-200 shrink-0 mb-1"
-                        />
-                      )}
-                      <div className="max-w-[78%] space-y-0.5">
-                        <div
-                          className={`rounded-2xl px-3.5 py-2 text-xs leading-relaxed shadow-2xs ${
-                            isOwn
-                              ? 'bg-brand-600 text-white rounded-br-xs'
-                              : 'bg-white text-slate-800 border border-slate-200/80 rounded-bl-xs'
-                          }`}
-                        >
-                          <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                        </div>
-                        <p className={`text-[10px] text-slate-400 px-1 ${isOwn ? 'text-right' : 'text-left'}`}>
-                          {new Date(msg.createdAt).toLocaleTimeString('vi-VN', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
+                    <div
+                      key={m.id}
+                      className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-xs shadow-2xs leading-relaxed ${
+                          isMine
+                            ? 'rounded-br-xs bg-emerald-600 text-white'
+                            : 'rounded-bl-xs bg-slate-100 text-slate-900'
+                        }`}
+                      >
+                        {m.content}
                       </div>
+                      <span className="text-[9px] text-slate-400 mt-1 px-1">
+                        {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                     </div>
                   );
                 })
@@ -449,54 +465,31 @@ export function FloatingMessengerChat() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Quick Suggestions */}
-            <div className="flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 bg-white/90 px-3 py-1.5 text-[11px] no-scrollbar shrink-0">
-              <button
-                type="button"
-                onClick={() => handleSendMessage('Bất động sản này còn trống không ạ?')}
-                className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-slate-600 hover:bg-brand-50 hover:text-brand-700 transition"
-              >
-                Căn này còn không?
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSendMessage('Cho tôi hỏi thêm về pháp lý và sổ hồng?')}
-                className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-slate-600 hover:bg-brand-50 hover:text-brand-700 transition"
-              >
-                Hỏi pháp lý sổ
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSendMessage('Tôi có thể hẹn lịch xem nhà trực tiếp không?')}
-                className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-slate-600 hover:bg-brand-50 hover:text-brand-700 transition"
-              >
-                Hẹn xem nhà
-              </button>
-            </div>
-
-            {/* Input Form */}
+            {/* Broker Input form */}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSendMessage();
               }}
-              className="flex items-center gap-1.5 border-t border-slate-200 bg-white p-2.5 shrink-0"
+              className="border-t border-slate-200 bg-white p-2.5 shrink-0"
             >
-              <input
-                type="text"
-                placeholder="Nhắn tin cho môi giới..."
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 placeholder-slate-400 outline-none focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-100 transition"
-              />
-              <button
-                type="submit"
-                disabled={!inputText.trim() || sending}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-40 transition shrink-0"
-                title="Gửi tin nhắn"
-              >
-                {sending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              </button>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder="Nhắn tin cho môi giới..."
+                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 placeholder-slate-400 outline-none focus:border-emerald-500 focus:bg-white transition"
+                />
+                <button
+                  type="submit"
+                  disabled={!inputText.trim() || sending}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 transition shrink-0"
+                  aria-label="Gửi"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
             </form>
           </div>
         )}
@@ -516,7 +509,7 @@ export function FloatingMessengerChat() {
                   <div className={`max-w-[82%] space-y-1.5 ${m.role === 'user' ? 'text-right' : ''}`}>
                     {m.content && (
                       <div
-                        className={`inline-block rounded-2xl px-3.5 py-2 text-xs leading-relaxed shadow-2xs ${
+                        className={`inline-block rounded-2xl px-3.5 py-2 text-xs leading-relaxed shadow-2xs whitespace-pre-line text-left ${
                           m.role === 'user'
                             ? 'rounded-br-xs bg-violet-600 text-white'
                             : 'rounded-bl-xs bg-white text-slate-800 border border-slate-100'
@@ -539,9 +532,9 @@ export function FloatingMessengerChat() {
               {aiTyping && (
                 <div className="flex items-center gap-2 text-xs text-violet-600">
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-100">
-                    <Bot className="h-3 w-3" />
+                    <Bot className="h-3 w-3 animate-spin" />
                   </div>
-                  <span className="italic">AI đang phân tích dữ liệu...</span>
+                  <span className="italic">AI đang phân tích dữ liệu & tuyển chọn BĐS...</span>
                 </div>
               )}
 
@@ -570,7 +563,7 @@ export function FloatingMessengerChat() {
                   value={aiInput}
                   onChange={(e) => setAiInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSendAi()}
-                  placeholder="Hỏi AI về giá cả, vị trí, sổ đỏ..."
+                  placeholder="Hỏi AI về giá cả, vị trí, sổ đỏ, vay vốn..."
                   className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 placeholder-slate-400 outline-none focus:border-violet-500 focus:bg-white transition"
                 />
                 <button

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Award,
@@ -118,6 +118,8 @@ function timeAgo(dateString?: string): string {
 export function ClientPropertyDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectToLogin = () => navigate('/login', { state: { from: location.pathname } });
   const [property, setProperty] = useState<Property | null>(null);
   const [pois, setPois] = useState<PoiWithFallback[]>([]);
   const [similar, setSimilar] = useState<Property[]>([]);
@@ -194,7 +196,7 @@ export function ClientPropertyDetailPage() {
   async function handleContactHost() {
     if (!property) return;
     if (!isLoggedIn) {
-      navigate('/login');
+      redirectToLogin();
       return;
     }
     try {
@@ -215,7 +217,7 @@ export function ClientPropertyDetailPage() {
   async function handleToggleFavorite() {
     if (!property || favoriteBusy) return;
     if (!isLoggedIn) {
-      navigate('/login');
+      redirectToLogin();
       return;
     }
     setFavoriteBusy(true);
@@ -515,11 +517,11 @@ export function ClientPropertyDetailPage() {
             isLoggedIn={isLoggedIn}
             currentUser={currentUser}
             onBook={() => {
-              if (!isLoggedIn) return navigate('/login');
+              if (!isLoggedIn) return redirectToLogin();
               setShowBooking(true);
             }}
             onDeposit={() => {
-              if (!isLoggedIn) return navigate('/login');
+              if (!isLoggedIn) return redirectToLogin();
               setShowDeposit(true);
             }}
             onChat={handleContactHost}
@@ -745,11 +747,11 @@ export function ClientPropertyDetailPage() {
             isLoggedIn={isLoggedIn}
             currentUser={currentUser}
             onBook={() => {
-              if (!isLoggedIn) return navigate('/login');
+              if (!isLoggedIn) return redirectToLogin();
               setShowBooking(true);
             }}
             onDeposit={() => {
-              if (!isLoggedIn) return navigate('/login');
+              if (!isLoggedIn) return redirectToLogin();
               setShowDeposit(true);
             }}
             onChat={handleContactHost}
@@ -816,7 +818,7 @@ export function ClientPropertyDetailPage() {
           <button
             type="button"
             onClick={() => {
-              if (!isLoggedIn) return navigate('/login');
+              if (!isLoggedIn) return redirectToLogin();
               setShowBooking(true);
             }}
             className="flex h-11 flex-[1.4] items-center justify-center gap-1.5 rounded-xl bg-emerald-600 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-700"

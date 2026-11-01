@@ -4,10 +4,13 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConflictException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { UserRole } from '@/common/enums';
 import { buildPagination } from '@/common/dto/pagination.dto';
 import { User } from './entities/user.entity';
 import {
+  AdminCreateUserDto,
   AdminUpdateUserDto,
   QueryUsersDto,
   UpdateProfileDto,
@@ -33,6 +36,10 @@ export class UsersService {
       qb.addSelect(['u.passwordHash', 'u.refreshTokenHash']);
     }
     return qb.getOne();
+  }
+
+  async findByPhone(phone: string): Promise<User | null> {
+    return this.repo.findOne({ where: { phone } });
   }
 
   async create(data: Partial<User>): Promise<User> {
@@ -81,6 +88,12 @@ export class UsersService {
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
+    if (dto.phone) {
+      const existingPhone = await this.findByPhone(dto.phone);
+      if (existingPhone && existingPhone.id !== userId) {
+        throw new ConflictException('Số điện thoại này đã được sử dụng bởi tài khoản khác.');
+      }
+    }
     await this.repo.update({ id: userId }, dto);
     return this.getProfile(userId);
   }
@@ -107,6 +120,12 @@ export class UsersService {
   async adminUpdate(id: string, dto: AdminUpdateUserDto) {
     const user = await this.repo.findOne({ where: { id } });
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
+    if (dto.phone && dto.phone !== user.phone) {
+      const existingPhone = await this.findByPhone(dto.phone);
+      if (existingPhone && existingPhone.id !== id) {
+        throw new ConflictException('Số điện thoại này đã được sử dụng bởi tài khoản khác.');
+      }
+    }
     await this.repo.update({ id }, dto);
     return this.getProfile(id);
   }
@@ -115,6 +134,35 @@ export class UsersService {
     const res = await this.repo.delete({ id });
     if (!res.affected) throw new NotFoundException('Không tìm thấy người dùng');
     return { deleted: true };
+  }
+
+  /** Admin tạo mới tài khoản (môi giới hoặc khách hàng). */
+  async adminCreateUser(dto: AdminCreateUserDto) {
+    const existing = await this.findRaw({ email: dto.email });
+    if (existing) {
+      throw new ConflictException('Email này đã tồn tại trong hệ thống.');
+    }
+    if (dto.phone) {
+      const existingPhone = await this.findByPhone(dto.phone);
+      if (existingPhone) {
+        throw new ConflictException('Số điện thoại này đã tồn tại trong hệ thống.');
+      }
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const user = this.repo.create({
+      name: dto.name,
+      email: dto.email,
+      phone: dto.phone || null,
+      passwordHash,
+      role: dto.role || UserRole.AGENT,
+      verified: true,
+      active: true,
+      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(dto.name)}`,
+    });
+
+    const saved = await this.repo.save(user);
+    return toPublicUser(saved);
   }
 
   async countByRole(role: UserRole) {

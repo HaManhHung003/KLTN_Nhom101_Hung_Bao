@@ -20,6 +20,17 @@ export class AppointmentsService {
     return this.repo.save(appointment);
   }
 
+  async findByUser(userId: string) {
+    return this.repo
+      .createQueryBuilder('app')
+      .leftJoinAndSelect('app.property', 'property')
+      .leftJoinAndSelect('app.buyer', 'buyer')
+      .leftJoinAndSelect('app.agent', 'agent')
+      .where('(app.buyerId = :userId OR app.agentId = :userId)', { userId })
+      .orderBy('app.createdAt', 'DESC')
+      .getMany();
+  }
+
   async findMyAppointments(userId: string, dto: QueryAppointmentDto) {
     const qb = this.repo
       .createQueryBuilder('app')

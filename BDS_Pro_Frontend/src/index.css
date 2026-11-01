@@ -124,3 +124,44 @@ body {
 .portal-bottom-nav-item-active {
   @apply text-brand-600;
 }
+
+
+/* Ensure Leaflet map stays strictly contained in its own isolated stacking layer and never overlaps header/dropdowns */
+.leaflet-container {
+  position: relative !important;
+  z-index: 0 !important;
+  isolation: isolate !important;
+}
+
+.leaflet-pane {
+  z-index: 10 !important;
+}
+
+.leaflet-tile-pane {
+  z-index: 1 !important;
+}
+
+.leaflet-overlay-pane {
+  z-index: 20 !important;
+}
+
+.leaflet-shadow-pane {
+  z-index: 30 !important;
+}
+
+.leaflet-marker-pane {
+  z-index: 40 !important;
+}
+
+.leaflet-tooltip-pane {
+  z-index: 50 !important;
+}
+
+.leaflet-popup-pane {
+  z-index: 60 !important;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 70 !important;
+}
