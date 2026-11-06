@@ -17,6 +17,7 @@ import {
   ForgotPasswordDto,
   LoginDto,
   RegisterDto,
+  ResetPasswordDto,
   SendOtpDto,
   VerifyOtpDto,
 } from './dto/auth.dto';
@@ -65,7 +66,13 @@ export class AuthService {
   async sendOtp(dto: SendOtpDto) {
     const existing = await this.usersService.findRaw({ email: dto.email });
     if (existing && existing.verified) {
-      throw new ConflictException('Email này đã được đăng ký và xác thực.');
+      throw new ConflictException('Email này đã được đăng ký tài khoản trong hệ thống.');
+    }
+    if (dto.phone) {
+      const existingPhone = await this.usersService.findByPhone(dto.phone);
+      if (existingPhone && existingPhone.verified && existingPhone.id !== existing?.id) {
+        throw new ConflictException('Số điện thoại này đã được đăng ký cho một tài khoản khác.');
+      }
     }
 
     // Tạo mã OTP ngẫu nhiên 6 chữ số
@@ -81,6 +88,7 @@ export class AuthService {
       const user = await this.usersService.create({
         name: dto.name,
         email: dto.email,
+        phone: dto.phone || null,
         passwordHash: dummyHash,
         role: UserRole.BUYER,
         verified: false,
@@ -117,13 +125,21 @@ export class AuthService {
       throw new BadRequestException('Mã OTP không chính xác. Vui lòng kiểm tra lại.');
     }
 
+    if (dto.phone) {
+      const existingPhone = await this.usersService.findByPhone(dto.phone);
+      if (existingPhone && existingPhone.id !== user.id) {
+        throw new ConflictException('Số điện thoại này đã được đăng ký cho một tài khoản khác.');
+      }
+    }
+
     // OTP hợp lệ → cập nhật mật khẩu, role, phone và đánh dấu verified
     const passwordHash = await bcrypt.hash(dto.password, 10);
     await this.usersService.activateUser(user.id, {
       name: dto.name,
       phone: dto.phone ?? null,
       passwordHash,
-      role: dto.role ?? UserRole.BUYER,
+      // Người dùng tự đăng ký luôn có role BUYER (Môi giới do Admin tạo)
+      role: UserRole.BUYER,
       verified: true,
       active: true,
       otpCode: null,
@@ -137,7 +153,12 @@ export class AuthService {
 
   async register(dto: RegisterDto) {
     const existing = await this.usersService.findRaw({ email: dto.email });
-    if (existing) throw new ConflictException('Email đã được sử dụng');
+    if (existing) throw new ConflictException('Email này đã được đăng ký tài khoản trong hệ thống.');
+
+    if (dto.phone) {
+      const existingPhone = await this.usersService.findByPhone(dto.phone);
+      if (existingPhone) throw new ConflictException('Số điện thoại này đã được đăng ký cho một tài khoản khác.');
+    }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = await this.usersService.create({
@@ -145,7 +166,8 @@ export class AuthService {
       email: dto.email,
       phone: dto.phone,
       passwordHash,
-      role: dto.role ?? UserRole.BUYER,
+      // Người dùng tự đăng ký luôn có role BUYER (Môi giới do Admin tạo)
+      role: UserRole.BUYER,
       avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(dto.name)}`,
     });
 
@@ -226,5 +248,21 @@ export class AuthService {
       message: 'Nếu email tồn tại, hướng dẫn đặt lại đã được gửi',
       resetToken: token,
     };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    let payload: any;
+    try {
+      payload = await this.jwt.verifyAsync(dto.token, {
+        secret: this.config.get('jwt.accessSecret'),
+      });
+      if (payload.purpose !== 'reset') throw new Error();
+    } catch {
+      throw new BadRequestException('Mã xác thực đặt lại mật khẩu không hợp lệ hoặc đã hết hạn');
+    }
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    await this.usersService.updatePassword(payload.sub, passwordHash);
+    return { success: true, message: 'Đặt lại mật khẩu thành công!' };
+
   }
 }

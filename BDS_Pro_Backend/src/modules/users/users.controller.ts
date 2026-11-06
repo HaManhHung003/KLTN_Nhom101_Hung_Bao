@@ -5,13 +5,15 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthUser, CurrentUser, Roles } from '@/common/decorators';
 import { UserRole } from '@/common/enums';
 import { UsersService } from './users.service';
 import {
+  AdminCreateUserDto,
   AdminUpdateUserDto,
   QueryUsersDto,
   UpdateProfileDto,
@@ -39,6 +41,20 @@ export class UsersController {
   @Roles(UserRole.ADMIN)
   findAll(@Query() query: QueryUsersDto) {
     return this.usersService.findAll(query);
+  }
+
+  @Post()
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Admin tạo tài khoản mới (Môi giới hoặc Khách hàng)' })
+  create(@Body() dto: AdminCreateUserDto) {
+    return this.usersService.adminCreateUser(dto);
+  }
+
+  @Get(':id')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Admin xem chi tiết hồ sơ một người dùng' })
+  findOne(@Param('id') id: string) {
+    return this.usersService.getProfile(id);
   }
 
   @Patch(':id')

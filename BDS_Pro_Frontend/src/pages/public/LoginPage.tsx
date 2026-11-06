@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff, Lock, Mail, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { ADMIN_ROUTES, BROKER_ROUTES, CLIENT_ROUTES } from '@/config/routes';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,7 +24,11 @@ export function LoginPage() {
       const userStr = localStorage.getItem('user');
       const user = userStr ? JSON.parse(userStr) : null;
 
-      if (user?.role === 'admin') {
+      const from = (location.state as any)?.from;
+
+      if (from && typeof from === 'string' && from !== '/login') {
+        navigate(from, { replace: true });
+      } else if (user?.role === 'admin') {
         navigate(ADMIN_ROUTES.dashboard);
       } else if (user?.role === 'agent') {
         navigate(BROKER_ROUTES.dashboard);

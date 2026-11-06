@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { BrokerSidebar } from '@/components/layout/broker/BrokerSidebar'
 import { BrokerTopBar } from '@/components/layout/broker/BrokerTopBar'
 import { PortalMobileHeader } from '@/components/layout/shared/PortalMobileHeader'
+import { FloatingMessengerChat } from '@/components/chat/FloatingMessengerChat'
 import { BROKER_ROUTES } from '@/config/routes'
 
 /** Broker / owner CRM workspace */
@@ -39,6 +40,8 @@ export function BrokerLayout() {
           <Outlet />
         </main>
       </div>
+
+      <FloatingMessengerChat />
     </div>
   )
 }

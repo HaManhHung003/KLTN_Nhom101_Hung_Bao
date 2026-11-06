@@ -15,6 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { adminService } from '@/services/admin.service';
+import { AdminUserDetailModal } from '@/components/admin/AdminUserDetailModal';
 import type { Property, User } from '@/types';
 import { formatPrice, statusColors, statusLabels } from '@/utils/format';
 
@@ -32,8 +33,51 @@ export function AdminUsers({ embedded = false }: { embedded?: boolean }) {
 
   // Selected broker to view their properties in Modal/Drawer
   const [selectedBroker, setSelectedBroker] = useState<User | null>(null);
+  const [selectedUserDetail, setSelectedUserDetail] = useState<User | null>(null);
   const [brokerProperties, setBrokerProperties] = useState<Property[]>([]);
   const [loadingBrokerProps, setLoadingBrokerProps] = useState(false);
+
+  // Modal tạo tài khoản Môi giới / Người dùng mới
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: 'agent',
+  });
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreating(true);
+    setCreateError(null);
+    try {
+      if (!createForm.name || !createForm.email || !createForm.password) {
+        throw new Error('Vui lòng điền đầy đủ họ tên, email và mật khẩu.');
+      }
+      if (createForm.password.length < 6) {
+        throw new Error('Mật khẩu tối thiểu 6 ký tự.');
+      }
+      await adminService.createUser({
+        name: createForm.name.trim(),
+        email: createForm.email.trim(),
+        phone: createForm.phone.trim() || undefined,
+        password: createForm.password,
+        role: createForm.role,
+      });
+      setShowCreateModal(false);
+      const roleName = createForm.role === 'agent' ? 'Môi giới' : 'Khách hàng';
+      alert(`✅ Đã tạo thành công tài khoản ${roleName} cho "${createForm.name}" (${createForm.email})!`);
+      setCreateForm({ name: '', email: '', phone: '', password: '', role: 'agent' });
+      fetchUsers();
+    } catch (err: any) {
+      setCreateError(err.message || 'Lỗi tạo tài khoản');
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const fetchUsers = () => {
     setLoading(true);
@@ -187,14 +231,27 @@ export function AdminUsers({ embedded = false }: { embedded?: boolean }) {
               Phân quyền, cấp phép, khóa tài khoản và quản lý tin đăng của từng môi giới
             </p>
           </div>
-          <button
-            type="button"
-            onClick={fetchUsers}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setCreateError(null);
+                setShowCreateModal(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 shadow-sm transition"
+            >
+              <UserCheck className="h-4 w-4" />
+              + Cấp tài khoản Môi giới
+            </button>
+            <button
+              type="button"
+              onClick={fetchUsers}
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm transition"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Làm mới
           </button>
+          </div>
         </div>
       )}
 
@@ -306,7 +363,7 @@ export function AdminUsers({ embedded = false }: { embedded?: boolean }) {
                 users.map((u) => (
                   <tr key={u.id} className="transition hover:bg-slate-50/60">
                     {/* User Profile */}
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-4 cursor-pointer" onClick={() => setSelectedUserDetail(u)}>
                       <div className="flex items-center gap-3">
                         <img
                           src={u.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.name)}`}
@@ -380,6 +437,16 @@ export function AdminUsers({ embedded = false }: { embedded?: boolean }) {
                     {/* Actions */}
                     <td className="px-5 py-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        {/* Button Xem thông tin cá nhân của người dùng */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedUserDetail(u)}
+                          className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition"
+                          title="Xem thông tin cá nhân & hoạt động của tài khoản này"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>Xem hồ sơ</span>
+                        </button>
                         {/* Button Xem tin đăng của môi giới */}
                         {u.role === 'agent' && (
                           <button
@@ -648,6 +715,141 @@ export function AdminUsers({ embedded = false }: { embedded?: boolean }) {
           </div>
         </div>
       )}
+
+      {/* Modal Admin tạo tài khoản Môi giới / User */}
+      {selectedUserDetail && (
+        <AdminUserDetailModal
+          user={selectedUserDetail}
+          onClose={() => setSelectedUserDetail(null)}
+          onUserUpdated={(updated) => {
+            setUsers((prev) => prev.map((u) => (u.id === updated.id ? { ...u, ...updated } : u)));
+          }}
+          onUserDeleted={(deletedId) => {
+            setUsers((prev) => prev.filter((u) => u.id !== deletedId));
+          }}
+        />
+      )}
+
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Cấp tài khoản mới</h3>
+                <p className="text-xs text-slate-500">Khởi tạo tài khoản Môi giới / Chủ BĐS hoặc Khách hàng</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {createError && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-600">
+                {createError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateUser} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Vai trò tài khoản</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreateForm({ ...createForm, role: 'agent' })}
+                    className={`rounded-xl border py-2.5 text-xs font-bold transition ${
+                      createForm.role === 'agent'
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    🏢 Môi giới (Agent)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreateForm({ ...createForm, role: 'buyer' })}
+                    className={`rounded-xl border py-2.5 text-xs font-bold transition ${
+                      createForm.role === 'buyer'
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    🏠 Khách hàng (Buyer)
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Họ và tên *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ví dụ: Trần Văn Bảo"
+                  value={createForm.name}
+                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Email đăng nhập *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="broker@bdspro.vn"
+                  value={createForm.email}
+                  onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Số điện thoại</label>
+                <input
+                  type="tel"
+                  placeholder="0912345678"
+                  value={createForm.phone}
+                  onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Mật khẩu ban đầu *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Tối thiểu 6 ký tự"
+                  value={createForm.password}
+                  onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {creating ? 'Đang tạo...' : 'Tạo tài khoản'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

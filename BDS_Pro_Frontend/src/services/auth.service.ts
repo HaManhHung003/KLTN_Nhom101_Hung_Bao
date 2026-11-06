@@ -46,8 +46,8 @@ export const authService = {
   },
 
   /** Bước 1: Gửi OTP đến email đăng ký. */
-  async sendOtp(email: string, name: string): Promise<{ message: string }> {
-    return api.post<any, { message: string }>('/auth/send-otp', { email, name });
+  async sendOtp(email: string, name: string, phone?: string): Promise<{ message: string }> {
+    return api.post<any, { message: string }>('/auth/send-otp', { email, name, phone });
   },
 
   /** Bước 2: Xác thực OTP và hoàn tất đăng ký. */
@@ -68,6 +68,23 @@ export const authService = {
       localStorage.setItem('user', JSON.stringify(res.user));
     }
     return res;
+  },
+
+  async updateProfile(data: { name?: string; phone?: string; avatar?: string }): Promise<User> {
+    const res = await api.patch<any, User>('/users/me', data);
+    if (res) {
+      const current = this.getCurrentUser();
+      const updated = { ...current, ...res };
+      localStorage.setItem('user', JSON.stringify(updated));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('bdspro_user_updated'));
+      }
+    }
+    return res;
+  },
+
+  async changePassword(data: { currentPassword: string; newPassword: string }): Promise<any> {
+    return api.post('/auth/change-password', data);
   },
 
   async getProfile(): Promise<User> {

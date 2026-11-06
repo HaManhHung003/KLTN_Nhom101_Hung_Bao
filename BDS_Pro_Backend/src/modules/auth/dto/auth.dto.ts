@@ -26,10 +26,10 @@ export class RegisterDto {
   @MaxLength(20)
   phone?: string;
 
-  @ApiProperty({ example: 'Matkhau123', minLength: 8, maxLength: 16 })
+  @ApiProperty({ example: 'Matkhau@123', minLength: 8, maxLength: 16 })
   @IsString()
-  @Matches(/^(?=.*[A-Z])(?=.*\d)[a-zA-Z0-9]{8,16}$/, {
-    message: 'Mật khẩu phải từ 8-16 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ số và không chứa ký tự đặc biệt',
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,16}$/, {
+    message: 'Mật khẩu phải từ 8-16 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ thường, 1 chữ số và 1 ký tự đặc biệt',
   })
   password: string;
 
@@ -66,10 +66,10 @@ export class ResetPasswordDto {
   @IsString()
   token: string;
 
-  @ApiProperty({ minLength: 8, maxLength: 16 })
+  @ApiProperty({ example: 'Matkhau@123', minLength: 8, maxLength: 16 })
   @IsString()
-  @Matches(/^(?=.*[A-Z])(?=.*\d)[a-zA-Z0-9]{8,16}$/, {
-    message: 'Mật khẩu phải từ 8-16 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ số và không chứa ký tự đặc biệt',
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,16}$/, {
+    message: 'Mật khẩu phải từ 8-16 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ thường, 1 chữ số và 1 ký tự đặc biệt',
   })
   password: string;
 }
@@ -79,10 +79,10 @@ export class ChangePasswordDto {
   @IsString()
   currentPassword: string;
 
-  @ApiProperty({ minLength: 8, maxLength: 16 })
+  @ApiProperty({ example: 'Matkhau@123', minLength: 8, maxLength: 16 })
   @IsString()
-  @Matches(/^(?=.*[A-Z])(?=.*\d)[a-zA-Z0-9]{8,16}$/, {
-    message: 'Mật khẩu mới phải từ 8-16 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ số và không chứa ký tự đặc biệt',
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,16}$/, {
+    message: 'Mật khẩu mới phải từ 8-16 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ thường, 1 chữ số và 1 ký tự đặc biệt',
   })
   newPassword: string;
 }
@@ -97,6 +97,12 @@ export class SendOtpDto {
   @IsString()
   @MaxLength(150)
   name: string;
+
+  @ApiPropertyOptional({ example: '0901234567' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  phone?: string;
 }
 
 /** DTO xác thực mã OTP và hoàn tất đăng ký. */
@@ -116,10 +122,10 @@ export class VerifyOtpDto {
   @MaxLength(150)
   name: string;
 
-  @ApiProperty({ example: 'Matkhau123', minLength: 8, maxLength: 16 })
+  @ApiProperty({ example: 'Matkhau@123', minLength: 8, maxLength: 16 })
   @IsString()
-  @Matches(/^(?=.*[A-Z])(?=.*\d)[a-zA-Z0-9]{8,16}$/, {
-    message: 'Mật khẩu phải từ 8-16 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ số và không chứa ký tự đặc biệt',
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,16}$/, {
+    message: 'Mật khẩu phải từ 8-16 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ thường, 1 chữ số và 1 ký tự đặc biệt',
   })
   password: string;
 

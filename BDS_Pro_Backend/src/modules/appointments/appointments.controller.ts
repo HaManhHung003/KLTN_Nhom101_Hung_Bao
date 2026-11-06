@@ -22,6 +22,12 @@ export class AppointmentsController {
     return this.service.findMyAppointments(userId, dto);
   }
 
+  @Get('user/:userId')
+  @ApiOperation({ summary: 'Xem danh sách lịch hẹn của một user' })
+  findByUser(@Param('userId') userId: string) {
+    return this.service.findByUser(userId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Chi tiết lịch hẹn' })
   findOne(@Param('id') id: string, @CurrentUser('id') userId: string) {

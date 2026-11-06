@@ -6,20 +6,20 @@ export interface UploadResult {
 }
 
 export const uploadService = {
-  async uploadSingleImage(file: File): Promise<UploadResult> {
+  async uploadSingleImage(file: File, folder = 'bdspro/avatars'): Promise<UploadResult> {
     const formData = new FormData();
     formData.append('file', file);
-    return api.post<any, UploadResult>('/upload/image', formData, {
+    return api.post<any, UploadResult>(`/upload/image?folder=${folder}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
   },
 
-  async uploadMultipleImages(files: File[]): Promise<UploadResult[]> {
+  async uploadMultipleImages(files: File[], folder = 'bdspro/properties'): Promise<UploadResult[]> {
     const formData = new FormData();
     files.forEach((file) => formData.append('files', file));
-    return api.post<any, UploadResult[]>('/upload/images', formData, {
+    return api.post<any, UploadResult[]>(`/upload/images?folder=${folder}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

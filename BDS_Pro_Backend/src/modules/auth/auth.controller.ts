@@ -8,6 +8,7 @@ import {
   LoginDto,
   RefreshDto,
   RegisterDto,
+  ResetPasswordDto,
   SendOtpDto,
   VerifyOtpDto,
 } from './dto/auth.dto';
@@ -70,6 +71,14 @@ export class AuthController {
   @ApiOperation({ summary: 'Yêu cầu đặt lại mật khẩu' })
   forgot(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Đặt lại mật khẩu mới với token' })
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 
   @ApiBearerAuth()

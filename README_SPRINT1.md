@@ -1,244 +1,113 @@
-# 🚀 BDS Pro - Sprint 1: Portal Public + Guest (v3.0)
+# 🚀 BDS Pro - Sprint 1: Portal Public + Guest & Bản đồ thông minh (v3.5)
 
-> **Ngày:** 04/09/2026
-> **Phạm vi:** Hoàn thiện trải nghiệm **Guest** trên Web, chuẩn hoá **4 vai trò** (guest / user / host / admin).
+> **Cập nhật:** Tháng 11/2026  
+> **Phạm vi:** Hoàn thiện trải nghiệm **Guest / Client** trên Web & Mobile, chuẩn hoá **3 nhóm tác nhân chính** (Client / Customer / Seller), tích hợp **Định vị GPS tự động**, **Bản đồ tương tác Leaflet**, **Gợi ý địa chỉ Autocomplete**, **Trợ lý ảo AI Chatbot** và bộ dữ liệu thực tế 20 dự án BĐS hàng đầu.
 
 ---
 
 ## 📋 Tóm tắt
 
-Sau khi hoàn thành module Đăng ký / Đăng nhập, Sprint 1 tập trung xây dựng **Portal Public** dành cho khách vãng lai, cho phép họ:
+Sprint 1 tập trung xây dựng toàn diện **Portal Public & Tìm kiếm BĐS** dành cho khách vãng lai (Client / Guest) và người dùng, cho phép:
 
-- Khám phá toàn bộ tính năng nền tảng mà **không cần đăng ký**
-- Truy cập đầy đủ các trang công khai: Landing, BĐS, Bản đồ, So sánh, Blog, Giới thiệu, Liên hệ
-- Chuyển đổi Guest → User/Host dễ dàng qua **LoginRequiredModal** thân thiện
-
----
-
-## 🏗️ Kiến trúc 4 Role
-
-```
-┌─────────────────────────────────────────────┐
-│          ADMIN (Quản trị viên)              │
-├─────────────────────────────────────────────┤
-│       HOST (Môi giới / Chủ BĐS)             │
-├─────────────────────────────────────────────┤
-│       USER (Người tìm/thuê BĐS)             │
-├─────────────────────────────────────────────┤
-│       GUEST (Khách vãng lai)    ◄── Sprint 1 │
-└─────────────────────────────────────────────┘
-```
+- Khám phá toàn bộ danh mục BĐS mua bán và cho thuê mà **không bắt buộc đăng ký / đăng nhập**.
+- Tự động định vị GPS của người dùng ngay khi vừa truy cập ứng dụng (Web & Mobile).
+- Tìm kiếm theo bán kính tùy chọn (`1km`, `3km`, `5km`, `10km`) quanh vị trí thực tế hoặc địa điểm tra cứu.
+- Trải nghiệm Trợ lý ảo AI Chatbot tư vấn giá và gợi ý BĐS thông minh dựa trên vị trí GPS của người dùng.
+- Trải nghiệm bản đồ số mượt mà, khắc phục triệt để lỗi che khuất gợi ý địa chỉ.
 
 ---
 
-## 🆕 Thay đổi trong Sprint 1
+## 🏗️ Kiến trúc 3 Nhóm Tác Nhân Cốt Lõi
 
-### 1. Tài liệu (`docs/`)
-
-- **`docs/PHAN-TICH-NGHIEP-VU.md`** — Bổ sung **Phụ lục v3.0**:
-  - Ma trận chức năng chi tiết theo 4 role
-  - Phân tích chức năng Guest (Portal Public)
-  - 7 Use case chi tiết cho Guest
-  - Phân tích dữ liệu mới (Blog, Liên hệ, So sánh)
-  - Thiết kế UI/UX & API Endpoint mới
-  - Lộ trình Sprint tiếp theo (Sprint 2-7)
-
-### 2. Database (`database/`)
-
-- **`database/bds_pro_migration_v3_public_guest.sql`** — Migration mới:
-  - `blog_categories` (6 chuyên mục mẫu)
-  - `blog_posts` (6 bài viết mẫu)
-  - `contact_messages` (3 mẫu)
-  - `site_stats` (6 metrics)
-  - `global_points_of_interest` (17 POI toàn TP.HCM)
-
-### 3. Backend NestJS (`BDS_Pro_Backend/src/`)
-
-#### Module mới:
-
-- **`modules/blog/`** — Blog CRUD + public read
-  - `BlogModule`, `BlogService`, `BlogController`
-  - Entities: `BlogCategory`, `BlogPost`
-  - DTOs: `CreateBlogPostDto`, `UpdateBlogPostDto`, `QueryBlogDto`
-  - Mapper: `toPublicBlogPost()`
-  - Endpoints: `GET /blog/categories`, `GET /blog/posts`, `GET /blog/posts/slug/:slug`, `GET /blog/posts/:id/related`
-  - Admin: `GET/POST/PATCH/DELETE /blog/posts/all`, `/blog/posts`, etc.
-
-- **`modules/public/`** — Public APIs cho Guest
-  - `PublicModule`, `PublicService`, `PublicController`
-  - Entities: `GlobalPoi`, `ContactMessage`, `SiteStat`
-  - Endpoints:
-    - `GET /public/stats` — Thống kê nền tảng
-    - `GET /public/pois` — POI toàn cục (filter category/city)
-    - `GET /public/pois/nearby?lat&lng&radius` — POI trong bán kính (MySQL ST_Distance_Sphere)
-    - `POST /public/contact` — Gửi form liên hệ
-    - Admin: `GET/PATCH/DELETE /public/contact[/:id]`
-
-#### Cập nhật:
-
-- **`common/enums/index.ts`** — Thêm `BlogPostStatus`, `ContactStatus`; mở rộng `PoiCategory`
-- **`app.module.ts`** — Đăng ký `BlogModule`, `PublicModule`
-- **`database/seeds/seed.ts`** — Bổ sung seed: 6 blog categories, 6 blog posts, 3 contact messages, 6 site stats, 17 global POIs
-
-### 4. Frontend React (`BDS_Pro_Frontend/src/`)
-
-#### Services mới:
-
-- **`services/blog.service.ts`** — `listCategories`, `getPosts`, `getFeatured`, `getPostBySlug`, `getRelated` + admin CRUD
-- **`services/public.service.ts`** — `getStats`, `listPois`, `getNearbyPois`, `createContact` + admin
-- **`services/compareStorage.ts`** — localStorage cho Guest (max 3 BĐS)
-
-#### Layout mới:
-
-- **`layouts/PublicLayout.tsx`** — Layout bọc các trang public
-- **`components/layout/public/PublicHeader.tsx`** — Header sticky gradient (có counter so sánh)
-- **`components/layout/public/PublicFooter.tsx`** — Footer 4 cột
-
-#### Components Public:
-
-- **`components/public/BlogCard.tsx`** — 3 variants (default / compact / featured)
-- **`components/public/ContactForm.tsx`** — Form liên hệ (validate phía client)
-
-#### Pages Public mới:
-
-- **`pages/public/LandingPage.tsx`** — Redesign hoàn toàn (hero, search shortcut, featured, 4 role cards, blog, testimonials, CTA)
-- **`pages/public/PublicPropertyListPage.tsx`** — Danh sách BĐS + filter (loại, giao dịch, khu vực, giá, PN)
-- **`pages/public/PublicPropertyDetailPage.tsx`** — Chi tiết BĐS cho Guest (CTA chat/lưu/đặt lịch → LoginRequiredModal)
-- **`pages/public/PublicMapPage.tsx`** — Bản đồ tổng quan Leaflet + marker BĐS + POI
-- **`pages/public/ComparePage.tsx`** — Bảng so sánh tối đa 3 BĐS
-- **`pages/public/BlogListPage.tsx`** — Danh sách blog với filter chuyên mục + search
-- **`pages/public/BlogDetailPage.tsx`** — Chi tiết bài viết + bài liên quan + CTA
-- **`pages/public/AboutPage.tsx`** — Giới thiệu sứ mệnh, đội ngũ, lộ trình
-- **`pages/public/ContactPage.tsx`** — Form liên hệ + info + FAQ
-
-#### Routes:
-
-- **`routes/AppRouter.tsx`** — Thêm PublicLayout cho 9 routes mới
-
-#### Types:
-
-- **`types/index.ts`** — Thêm `BlogCategory`, `BlogPost`, `ContactMessage`, `SiteStats`; mở rộng `PoiCategory`
+```text
+┌────────────────────────────────────────────────────────┐
+│             ADMIN (Quản trị viên hệ thống sàn)         │
+├────────────────────────────────────────────────────────┤
+│    SELLER (Người bán / Môi giới BĐS được cấp tài khoản)│
+├────────────────────────────────────────────────────────┤
+│    CUSTOMER (Khách hàng đã đăng ký & đăng nhập)        │
+├────────────────────────────────────────────────────────┤
+│    CLIENT (Khách vãng lai chưa đăng nhập) ◄── Sprint 1 │
+└────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 🚦 Hướng dẫn chạy
+## 🌟 Những nâng cấp đột phá mới (v3.5)
 
-### 1. Database (MySQL)
+### 1. Định vị GPS tự động trên Web & Mobile (`LocationContext.tsx`)
+* Tự động kích hoạt HTML5 Geolocation (`enableHighAccuracy: true`) ngay khi truy cập trang web hoặc mở ứng dụng mobile.
+* Tự động lưu cache tọa độ vào `localStorage` giúp tải tức thì trong các phiên truy cập tiếp theo.
+* Tích hợp **Reverse Geocoding** thông qua OpenStreetMap Nominatim: chuyển đổi kinh/vĩ độ thành tên Phường, Quận, Thành phố chuẩn xác mà không phụ thuộc API key tốn phí.
+* Cung cấp nút ghim GPS với hiệu ứng pulsing beacon để người dùng cập nhật lại tọa độ bất cứ lúc nào.
 
-```bash
-# Chạy schema đầy đủ trước
-mysql -u root -p < database/bds_pro_database_full.sql
+### 2. Tìm kiếm BĐS theo Bán kính & Tra cứu địa chỉ trên Map
+* Bộ lọc bán kính 1-click: `1 km`, `3 km`, `5 km`, `10 km`, `Tất cả`.
+* Tính toán khoảng cách chính xác theo công thức **Haversine** từ tọa độ người dùng đến từng căn hộ.
+* Ô tìm kiếm hỗ trợ **Gợi ý địa chỉ tức thì (Autocomplete)**: gợi ý Quận/Huyện, Tuyến đường trung tâm và các Khu đô thị / Dự án BĐS nổi tiếng.
+* Khi nhập một địa chỉ bất kỳ và bấm Tra cứu, hệ thống tự động Geocode tâm bản đồ và quét bán kính xung quanh địa điểm đó.
 
-# Sau đó chạy migration v3.0
-mysql -u root -p bds_pro_db < database/bds_pro_migration_v3_public_guest.sql
+### 3. Khắc phục triệt để lỗi Menu gợi ý bị Bản đồ che khuất (Leaflet Stacking Isolation)
+* **Nguyên nhân gốc rễ:** Leaflet map panes mặc định mang `z-index: 200 – 1000`. Do `.leaflet-container` không có ngữ cảnh cô lập, các lớp bản đồ bị vẽ đè lên dropdown tìm kiếm.
+* **Xử lý:** 
+  - Khai báo CSS: `.leaflet-container { position: relative !important; z-index: 0 !important; isolation: isolate !important; }`.
+  - Phân tầng lại z-index nội bộ của Leaflet (`z-index: 10..70`) thấp hơn các thành phần dropdown/menu của ứng dụng (`z-index: 50+`).
+  - Menu gợi ý địa chỉ hiển thị nổi bật, bóng mờ sắc nét `shadow-2xl backdrop-blur-xl`.
 
-# Hoặc dùng script seed tự động
-cd BDS_Pro_Backend
-npm run seed
-```
+### 4. Trợ lý ảo AI Chatbot tích hợp Vị trí GPS thời gian thực
+* AI Chatbot tự động nhận tọa độ GPS và tên địa chỉ người dùng thông qua `LocationContext`.
+* Trả lời và đề xuất chính xác các yêu cầu dạng: *"Tìm căn hộ gần tôi dưới 2,5 tỷ"*, *"Khu vực quanh tôi có dự án nào đang cho thuê không?"*.
+* Cung cấp dock chat nổi góc màn hình 2 chế độ tiện dụng: `[ 💬 Môi giới | 🤖 Trợ lý AI GPS ]`.
 
-### 2. Backend
+### 5. Tái thiết kế UI/UX phong cách Luxury (Airbnb Modern)
+* Giao diện phân chia màn hình tối ưu: **58% Bản đồ tương tác Leaflet** + **42% Danh sách BĐS kết quả**.
+* Marker bản đồ dạng **Pill hiển thị giá tiền thực tế**, trạng thái active chuyển sang màu xanh ngọc (Emerald), click mở thẻ preview sang trọng.
+* Thẻ BĐS ([`PropertyCard.tsx`](file:///d:/KLTN_Nhom101_Hung_Bao/BDS_Pro_Frontend/src/components/common/PropertyCard.tsx)): Bo góc hiện đại `rounded-3xl`, carousel chấm hover chuyển ảnh nhanh, tag chứng nhận pháp lý sổ hồng riêng, thông số diện tích và phòng ngủ tinh tế.
+* Nút chuyển đổi giao diện trên điện thoại di động: `[ 🗺️ Bản đồ ]` ⇄ `[ 📋 Xem danh sách ]`.
 
-```bash
-cd BDS_Pro_Backend
-npm install
-npm run build
-npm run start
-# → Server: http://localhost:4000
-# → API docs: http://localhost:4000/api/docs
-# → New endpoints:
-#    GET  /api/v1/public/stats
-#    GET  /api/v1/public/pois
-#    POST /api/v1/public/contact
-#    GET  /api/v1/blog/categories
-#    GET  /api/v1/blog/posts
-#    GET  /api/v1/blog/posts/slug/:slug
-```
+### 6. Bộ dữ liệu chuẩn xác 20 BĐS thực tế & 59 hình ảnh chất lượng cao
+* Khảo sát và nạp dữ liệu chuẩn xác của 20 dự án thực tế tại TP.HCM & Hà Nội:
+  - *Vinhomes Central Park (Landmark 81)* — Q. Bình Thạnh
+  - *The River Thủ Thiêm & Masteri Thảo Điền* — TP. Thủ Đức
+  - *Vinhomes Grand Park (The Origami, Rainbow)* — TP. Thủ Đức
+  - *KĐT Vạn Phúc City ven sông Sài Gòn* — TP. Thủ Đức
+  - *KĐT Mizuki Park Nam Long* — Bình Chánh
+  - *Eco Green Saigon & Chateau Phú Mỹ Hưng* — Quận 7
+  - *Kingdom 101 & HaDo Centrosa Garden* — Quận 10
+  - *Vinhomes Smart City Tây Mỗ & Vinhomes Ocean Park* — Hà Nội
+* Kèm 59 hình ảnh căn hộ thực tế chất lượng cao và 80 địa điểm tiện ích xung quanh (POIs) đo đạc khoảng cách chuẩn xác.
+* Đã xuất lưu đồng bộ vào [database/bds_pro_database_full.sql](file:///d:/KLTN_Nhom101_Hung_Bao/database/bds_pro_database_full.sql).
 
-### 3. Frontend
+---
 
-```bash
-cd BDS_Pro_Frontend
-npm install
-npm run dev
-# → Web: http://localhost:5173
-```
+## 🧪 Hướng dẫn kiểm thử nhanh các tính năng mới
 
-### 4. Test nhanh (Guest flow)
+1. **Kiểm tra tự động định vị GPS:**
+   - Truy cập `http://localhost:5173/client/tim-kiem`.
+   - Trình duyệt hiển thị popup xin quyền vị trí -> Bấm **Allow (Cho phép)**.
+   - Quan sát ô tìm kiếm hiển thị chấm xanh phát sóng (pulsing beacon) và badge: `Quanh: [Tên vị trí của bạn] (5km)`.
+   - Vòng tròn màu xanh hiển thị bán kính quét quanh chấm ghim vị trí của bạn trên bản đồ.
 
-1. Mở `http://localhost:5173/` → Landing Page
-2. Click "Khám phá BĐS" → `/bat-dong-san`
-3. Click 1 BĐS → Chi tiết
-4. Click "Lưu tin" → **LoginRequiredModal** xuất hiện
-5. Click "So sánh" trên các BĐS → `/so-sanh` để xem bảng so sánh
-6. Click "Blog" → `/blog` → đọc bài viết
-7. Click "Liên hệ" → gửi form
-8. Đăng ký tài khoản → chuyển sang portal User/Host/Admin
+2. **Kiểm tra gợi ý địa chỉ và chống che khuất:**
+   - Nhập từ khóa: `Vạn Phúc` hoặc `Sala` hoặc `Quận 2`.
+   - Danh sách gợi ý địa chỉ nổi lên mượt mà và nằm hoàn toàn trên lớp bản đồ, không bị cắt xén.
 
-### 5. Test tài khoản có sẵn (sau khi seed)
-
-```
-Email                     | Password | Role
---------------------------|----------|----------
-admin@bdspro.vn           | 123456   | admin
-vanbao@bdspro.vn          | 123456   | agent (host)
-hung@gmail.com            | 123456   | agent (host)
-minhanh@gmail.com         | 123456   | buyer (user)
-thuha@gmail.com           | 123456   | buyer (user)
-```
+3. **Kiểm tra Chatbot AI định vị:**
+   - Bấm vào biểu tượng Chatbot AI ở góc phải màn hình hoặc truy cập `/client/chat`.
+   - Đặt câu hỏi: *"Tìm căn hộ gần tôi dưới 2,5 tỷ"* -> Chatbot đọc tọa độ GPS của bạn và trả về các căn hộ gần nhất kèm khoảng cách chi tiết (ví dụ: Origami Vinhomes Grand Park cách 3.2km giá 2.45 tỷ).
 
 ---
 
 ## ✅ Acceptance Criteria đạt được
 
-- [x] FR-PUB01: Landing Page có hero, tin nổi bật, 4 role cards
-- [x] FR-PUB02: Danh sách BĐS công khai + filter
-- [x] FR-PUB03: Tìm kiếm BĐS trên bản đồ
-- [x] FR-PUB04: Chi tiết BĐS cho Guest (gallery, POI, mô tả)
-- [x] FR-PUB05: So sánh BĐS (tối đa 3, lưu localStorage)
-- [x] FR-PUB06: Blog (danh sách + chi tiết + chuyên mục)
-- [x] FR-PUB07: Trang Giới thiệu
-- [x] FR-PUB08: Trang Liên hệ (form + thông tin)
-- [x] FR-PUB09: Header & Footer public với đầy đủ nav
-- [x] FR-PUB10: LoginRequiredModal khi Guest click thao tác cần auth
-- [x] FR-B01-03: Blog CRUD + admin management
-- [x] FR-CT01-02: Contact form + admin xử lý
-- [x] Phân biệt 4 role (guest / user / host / admin) trong code & UI
-- [x] Tài liệu docs cập nhật với phụ lục v3.0
+- [x] Tự động định vị GPS khi người dùng mở trang Web hoặc Mobile App.
+- [x] Hiển thị gợi ý địa chỉ tự động (Autocomplete) không bị bản đồ Leaflet che khuất.
+- [x] Lọc và quét BĐS theo bán kính 1km, 3km, 5km, 10km quanh vị trí GPS hoặc địa điểm tra cứu.
+- [x] Trợ lý AI Chatbot phân tích tọa độ người dùng để tư vấn BĐS gần nhất.
+- [x] Giao diện UI/UX chuẩn Luxury phong cách Airbnb (thẻ bo tròn, marker giá nổi bật).
+- [x] Cập nhật bộ dữ liệu thực tế 20 căn hộ/dự án chuẩn xác kèm 59 ảnh HD và 80 POIs.
+- [x] Build toàn diện Frontend & Backend đạt 0 lỗi biên dịch.
 
 ---
 
-## 📊 Thống kê
-
-- **Backend:**
-  - 2 module mới (Blog, Public)
-  - 5 entity mới (BlogCategory, BlogPost, GlobalPoi, ContactMessage, SiteStat)
-  - 12+ endpoint mới
-- **Frontend:**
-  - 9 trang public mới
-  - 3 services mới
-  - 1 layout + 2 header/footer
-  - 2 components public mới
-- **Database:**
-  - 5 bảng mới
-  - 6 chuyên mục + 6 bài blog
-  - 17 POI toàn TP.HCM
-- **Docs:**
-  - Phụ lục v3.0 (~500 dòng) bổ sung vào PHAN-TICH-NGHIEP-VU.md
-
----
-
-## 🚀 Sprint tiếp theo
-
-- **Sprint 2:** User Portal hoàn chỉnh (đặt lịch, chat, đặt cọc)
-- **Sprint 3:** Host Portal (CRM, đăng tin wizard)
-- **Sprint 4:** Admin Portal (kiểm duyệt, quản lý user, blog, contact)
-- **Sprint 5:** Chat real-time + Push Notification
-- **Sprint 6:** Payment + Escrow
-- **Sprint 7:** AI Chatbot + Analytics Dashboard
-
-Xem chi tiết trong `docs/PHAN-TICH-NGHIEP-VU.md` §21.
-
----
-
-*Đề tài KLTN Nhóm 101 Hùng Bảo · 04/09/2026*
+*Khóa luận tốt nghiệp — Nhóm 101 Mạnh Hưng & Văn Bảo · Tháng 11/2026*

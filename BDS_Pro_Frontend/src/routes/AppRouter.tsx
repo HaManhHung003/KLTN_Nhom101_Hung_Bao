@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { ClientLayout } from '@/layouts/ClientLayout';
 import { BrokerLayout } from '@/layouts/BrokerLayout';
 import { AdminLayout } from '@/layouts/AdminLayout';
+import { ProtectedRoute } from '@/routes/ProtectedRoute';
 
 import { LandingPage } from '@/pages/public/LandingPage';
 import { LoginPage } from '@/pages/public/LoginPage';
@@ -37,6 +38,8 @@ import { AdminTransactionsPage } from '@/pages/admin-portal/AdminTransactionsPag
 import { AdminOperationsPage } from '@/pages/admin-portal/AdminOperationsPage';
 import { AdminLogsPage } from '@/pages/admin-portal/AdminLogsPage';
 import { AdminSettingsPage } from '@/pages/admin-portal/AdminSettingsPage';
+import { AdminProfilePage } from '@/pages/admin/AdminProfilePage';
+import { AdminUserDetailPage } from '@/pages/admin/AdminUserDetailPage';
 
 import { PropertyDetailView } from '@/pages/shared/PropertyDetailView';
 import { EditListingForm } from '@/pages/shared/EditListingForm';
@@ -76,7 +79,14 @@ export function AppRouter() {
       </Route>
 
       {/* ── BROKER LAYOUT ── */}
-      <Route path="/broker" element={<BrokerLayout />}>
+      <Route
+        path="/broker"
+        element={
+          <ProtectedRoute allowedRoles={['agent', 'admin']}>
+            <BrokerLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<BrokerDashboardPage />} />
         <Route path="properties" element={<BrokerPropertiesPage />} />
         <Route path="properties/create" element={<BrokerNewPropertyPage />} />
@@ -95,16 +105,25 @@ export function AppRouter() {
       </Route>
 
       {/* ── ADMIN LAYOUT ── */}
-      <Route path="/admin" element={<AdminLayout />}>
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminOverviewPage />} />
         <Route path="moderation" element={<AdminModerationPage />} />
         <Route path="properties" element={<AdminPropertiesPage />} />
         <Route path="users" element={<AdminUsersPage />} />
+        <Route path="users/:id" element={<AdminUserDetailPage />} />
         <Route path="transactions" element={<AdminTransactionsPage />} />
         <Route path="van-hanh" element={<AdminOperationsPage />} />
         <Route path="logs" element={<AdminLogsPage />} />
         <Route path="settings" element={<AdminSettingsPage />} />
+        <Route path="profile" element={<AdminProfilePage />} />
         <Route path="property/:id" element={<PropertyDetailView role="admin" basePath="/admin" />} />
       </Route>
 

@@ -6,7 +6,6 @@ import {
   Phone,
   Lock,
   User,
-  Shield,
   KeyRound,
   CheckCircle2,
   ArrowLeft,
@@ -22,7 +21,7 @@ export function RegisterPage() {
   const { setUser } = useAuth()
 
   // Form State
-  const [accountType, setAccountType] = useState<'buyer' | 'agent'>('buyer')
+  const accountType = 'buyer';
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -94,12 +93,16 @@ export function RegisterPage() {
       setError('Mật khẩu phải chứa ít nhất 1 chữ viết hoa (A-Z).')
       return
     }
+    if (!/[a-z]/.test(password)) {
+      setError('Mật khẩu phải chứa ít nhất 1 chữ viết thường (a-z).')
+      return
+    }
     if (!/\d/.test(password)) {
       setError('Mật khẩu phải chứa ít nhất 1 chữ số (0-9).')
       return
     }
-    if (/[^a-zA-Z0-9]/.test(password)) {
-      setError('Mật khẩu không được chứa ký tự đặc biệt.')
+    if (!/[^a-zA-Z0-9]/.test(password)) {
+      setError('Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt (!@#$%^&*...).')
       return
     }
 
@@ -107,7 +110,7 @@ export function RegisterPage() {
 
     try {
       // Gọi API backend để sinh và gửi OTP qua email thật
-      const res = await authService.sendOtp(email.trim(), name.trim())
+      const res = await authService.sendOtp(email.trim(), name.trim(), phone.trim())
       setSuccessMsg(res.message)
       setOtpDigits(['', '', '', '', '', ''])
       setStep(2)
@@ -164,7 +167,7 @@ export function RegisterPage() {
     setLoading(true)
     setOtpError(null)
     try {
-      await authService.sendOtp(email.trim(), name.trim())
+      await authService.sendOtp(email.trim(), name.trim(), phone.trim())
       setOtpDigits(['', '', '', '', '', ''])
       setTimer(60)
       setCanResend(false)
@@ -246,30 +249,17 @@ export function RegisterPage() {
         {/* STEP 1: FILL REGISTRATION FORM */}
         {step === 1 && (
           <div>
-            {/* Account Type Selector */}
-            <div className="mt-5 flex gap-2 rounded-xl bg-slate-100 p-1">
-              <button
-                type="button"
-                onClick={() => setAccountType('buyer')}
-                className={`flex-1 rounded-lg py-2.5 text-xs font-bold transition ${
-                  accountType === 'buyer'
-                    ? 'bg-white shadow-sm text-emerald-700'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                🏠 Người tìm / Thêm BĐS
-              </button>
-              <button
-                type="button"
-                onClick={() => setAccountType('agent')}
-                className={`flex-1 rounded-lg py-2.5 text-xs font-bold transition ${
-                  accountType === 'agent'
-                    ? 'bg-white shadow-sm text-emerald-700'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                🏢 Môi giới / Chủ BĐS
-              </button>
+            {/* Account Type Notice: Cố định role Khách hàng */}
+            <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3.5 text-xs flex items-start gap-3">
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-[11px] font-bold">
+                ✓
+              </div>
+              <div>
+                <span className="font-bold text-emerald-950">Đăng ký tài khoản Khách hàng</span>
+                <p className="mt-0.5 text-slate-600 text-[11px] leading-relaxed">
+                  Dành cho người tìm mua & thuê bất động sản. Nếu bạn là <strong>Môi giới / Chủ BĐS</strong>, tài khoản công tác sẽ do <strong>Quản trị viên (Admin)</strong> xét duyệt và cấp phép.
+                </p>
+              </div>
             </div>
 
             {error && (
@@ -330,41 +320,34 @@ export function RegisterPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Ví dụ: Matkhau123 (8-16 ký tự)"
+                    placeholder="Ví dụ: Matkhau@123 (8-16 ký tự)"
                     className="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
                 {/* Password Criteria Checklist */}
-                <div className="mt-2 space-y-1 rounded-xl bg-slate-50 p-2.5 text-[11px] text-slate-500 border border-slate-100">
+                <div className="mt-2 space-y-1.5 rounded-xl bg-slate-50 p-2.5 text-[11px] text-slate-500 border border-slate-100">
                   <p className="font-semibold text-slate-700">Yêu cầu bảo mật mật khẩu:</p>
-                  <div className="grid grid-cols-2 gap-1">
+                  <div className="grid grid-cols-2 gap-1.5">
                     <span className={`flex items-center gap-1 ${password.length >= 8 && password.length <= 16 ? 'text-emerald-600 font-semibold' : ''}`}>
                       {password.length >= 8 && password.length <= 16 ? '✓' : '•'} 8 - 16 ký tự
                     </span>
                     <span className={`flex items-center gap-1 ${/[A-Z]/.test(password) ? 'text-emerald-600 font-semibold' : ''}`}>
                       {/[A-Z]/.test(password) ? '✓' : '•'} Ít nhất 1 chữ hoa
                     </span>
+                    <span className={`flex items-center gap-1 ${/[a-z]/.test(password) ? 'text-emerald-600 font-semibold' : ''}`}>
+                      {/[a-z]/.test(password) ? '✓' : '•'} Ít nhất 1 chữ thường
+                    </span>
                     <span className={`flex items-center gap-1 ${/\d/.test(password) ? 'text-emerald-600 font-semibold' : ''}`}>
                       {/\d/.test(password) ? '✓' : '•'} Ít nhất 1 số
                     </span>
-                    <span className={`flex items-center gap-1 ${password && !/[^a-zA-Z0-9]/.test(password) ? 'text-emerald-600 font-semibold' : ''}`}>
-                      {password && !/[^a-zA-Z0-9]/.test(password) ? '✓' : '•'} Không ký tự đặc biệt
+                    <span className={`col-span-2 flex items-center gap-1 ${/[^a-zA-Z0-9]/.test(password) ? 'text-emerald-600 font-semibold' : ''}`}>
+                      {/[^a-zA-Z0-9]/.test(password) ? '✓' : '•'} Ít nhất 1 ký tự đặc biệt (!@#$%^...)
                     </span>
                   </div>
                 </div>
               </div>
 
-              {accountType === 'agent' && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-3.5">
-                  <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
-                    <Shield className="h-4 w-4 text-amber-600" />
-                    Tài khoản Môi giới Chuyên nghiệp
-                  </div>
-                  <p className="mt-1 text-[11px] text-amber-700">
-                    Sau khi đăng ký, bạn có thể đăng tin BĐS và được hỗ trợ dấu tích xanh môi giới uy tín.
-                  </p>
-                </div>
-              )}
+
 
               <button
                 type="submit"
@@ -480,15 +463,14 @@ export function RegisterPage() {
             <div>
               <h2 className="text-lg font-bold text-slate-900">Chúc mừng {name}!</h2>
               <p className="mt-1 text-xs text-slate-500">
-                Tài khoản <strong>{email}</strong> ({accountType === 'agent' ? 'Môi giới / Chủ BĐS' : 'Người tìm BĐS'}) đã xác thực thành công.
+                Tài khoản <strong>{email}</strong> (Khách hàng tìm BĐS) đã xác thực thành công.
               </p>
             </div>
             <div className="pt-2 flex flex-col gap-2">
               <button
                 type="button"
                 onClick={() => {
-                  if (accountType === 'agent') navigate('/agent/properties')
-                  else navigate('/')
+                  navigate('/client')
                 }}
                 className="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition shadow-sm"
               >

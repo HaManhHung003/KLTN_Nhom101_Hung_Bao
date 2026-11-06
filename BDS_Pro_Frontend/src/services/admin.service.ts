@@ -72,6 +72,24 @@ export const adminService = {
   },
 
   /** Cập nhật thông tin / trạng thái user (khóa/mở khóa active, xác minh verified, đổi role). */
+  /** Admin tạo tài khoản người dùng mới (đặc biệt là Môi giới / Host). */
+  async createUser(data: { name: string; email: string; password: string; phone?: string; role?: string }): Promise<User> {
+    return api.post('/users', data);
+  },
+
+  async getUserDetail(id: string): Promise<User> {
+    return api.get(`/users/${id}`);
+  },
+
+  async getUserAppointments(userId: string): Promise<any[]> {
+    try {
+      const res = await api.get<any, any>(`/appointments/user/${userId}`);
+      return Array.isArray(res) ? res : res?.data || [];
+    } catch {
+      return [];
+    }
+  },
+
   async updateUser(id: string, data: Partial<User>): Promise<User> {
     return api.patch(`/users/${id}`, data);
   },
