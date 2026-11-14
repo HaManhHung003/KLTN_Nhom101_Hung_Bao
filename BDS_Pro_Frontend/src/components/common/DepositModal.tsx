@@ -1,84 +1,812 @@
-import { useState } from 'react'
-import { CreditCard, Shield, X } from 'lucide-react'
-import type { Property } from '@/types'
-import { formatPrice } from '@/utils/format'
+import { useState, useEffect } from 'react';
+import {
+  CheckCircle2,
+  Copy,
+  CreditCard,
+  ExternalLink,
+  Loader2,
+  Lock,
+  Printer,
+  QrCode,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  X,
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { transactionService, type DepositResponse } from '@/services/transaction.service';
+import { formatPrice } from '@/utils/format';
+import type { Property } from '@/types';
+import { CLIENT_ROUTES } from '@/config/routes';
 
 interface DepositModalProps {
-  property: Property
-  onClose: () => void
+  property: Property;
+  onClose: () => void;
+  onSuccess?: (res: DepositResponse) => void;
 }
 
-export function DepositModal({ property, onClose }: DepositModalProps) {
-  const [step, setStep] = useState(1)
-  const depositAmount = property.transactionType === 'rent' ? 5000000 : 500000000
+export function DepositModal({ property, onClose, onSuccess }: DepositModalProps) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const isRent = property.transactionType === 'rent';
+  const defaultAmount = isRent ? 5_000_000 : 50_000_000;
+
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [depositAmount, setDepositAmount] = useState<number>(defaultAmount);
+  const [customAmountStr, setCustomAmountStr] = useState<string>('');
+  const [buyerName, setBuyerName] = useState<string>(user?.name || '');
+  const [buyerPhone, setBuyerPhone] = useState<string>(user?.phone || '');
+  const [buyerIdCard, setBuyerIdCard] = useState<string>('079201008899');
+  const [note, setNote] = useState<string>('Cam kết giữ chỗ trong 7 ngày để thẩm định pháp lý & công chứng');
+  const [agreeTerms, setAgreeTerms] = useState<boolean>(true);
+
+  // Payment method: 'bank' (VietQR), 'vnpay', 'momo'
+  const [paymentMethod, setPaymentMethod] = useState<'bank' | 'vnpay' | 'momo'>('bank');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isSimulating, setIsSimulating] = useState<boolean>(false);
+  const [depositResult, setDepositResult] = useState<DepositResponse | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // Escrow Bank Details for VietQR (Tài khoản nhận cọc ký quỹ)
+  const ESCROW_BANK = {
+    bankName: 'VPBank (Ngân hàng TMCP Việt Nam Thịnh Vượng)',
+    accountNumber: '0332536815',
+    accountName: 'CAO VAN BAO',
+    transferContent: `BDSCOC ${property.id.slice(-6).toUpperCase()}`,
+  };
+
+  const vietQrUrl = `https://img.vietqr.io/image/vpbank-0332536815-compact.png?amount=${depositAmount}&addInfo=${encodeURIComponent(
+    ESCROW_BANK.transferContent,
+  )}&accountName=${encodeURIComponent(ESCROW_BANK.accountName)}`;
+
+  // MoMo Wallet Details
+  const MOMO_WALLET = {
+    phone: '0332536815',
+    accountName: 'Cao Văn Bảo',
+    transferContent: `BDSCOC ${property.id.slice(-6).toUpperCase()}`,
+  };
+
+  const momoQrData = `2|99|0332536815|CAO VAN BAO||0|0|${depositAmount}|${MOMO_WALLET.transferContent}|transfer_myqr`;
+  const momoQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(momoQrData)}`;
+  const momoDeepLink = `momo://?action=transfer&phone=0332536815&amount=${depositAmount}&note=${encodeURIComponent(
+    MOMO_WALLET.transferContent,
+  )}`;
+
+  // Tự động lắng nghe trạng thái thanh toán từ SePay Webhook / Bank IPN (Polling 2.5s)
+  useEffect(() => {
+    if (step !== 2) return;
+
+    let isMounted = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await transactionService.checkPaymentStatus(property.id);
+        if (res?.isPaid && isMounted) {
+          clearInterval(interval);
+          const autoResult: DepositResponse = {
+            success: true,
+            message: 'Tự động xác thực thanh toán thành công qua SePay Gateway!',
+            receiptId: res.receiptId || `REC_SEPAY_${Date.now()}`,
+            transaction: res.transaction,
+            deal: res.transaction?.deal,
+            property: {
+              id: property.id,
+              title: property.title,
+              price: property.price,
+              address: property.address,
+              image: property.images?.[0] || (property as any).media?.[0]?.url || null,
+            },
+          };
+          setDepositResult(autoResult);
+          setStep(3);
+          if (onSuccess) onSuccess(autoResult);
+        }
+      } catch (err) {
+        // bỏ qua lỗi gián đoạn mạng khi polling
+      }
+    }, 2500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [step, property.id, property, onSuccess]);
+
+  const handleSimulatePayment = async () => {
+    try {
+      setIsSimulating(true);
+      await transactionService.simulateSepayPayment(property.id, depositAmount);
+    } catch (err: any) {
+      console.error('Lỗi khi giả lập SePay:', err);
+      alert('Không thể kích hoạt giả lập SePay: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
+  const handleCopy = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!agreeTerms) {
+      alert('Vui lòng đồng ý với điều khoản ký quỹ đặt cọc an toàn!');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const res = await transactionService.createDeposit({
+        propertyId: property.id,
+        agentId: property.ownerId,
+        amount: depositAmount,
+        method: paymentMethod,
+        buyerName: buyerName.trim() || user?.name || 'Khách hàng',
+        buyerPhone: buyerPhone.trim() || user?.phone || '0901234567',
+        note: `${note} (CMND/CCCD: ${buyerIdCard})`,
+      });
+
+      setDepositResult(res);
+      setStep(3);
+      if (onSuccess) onSuccess(res);
+    } catch (err: any) {
+      console.error('Lỗi khi đặt cọc:', err);
+      alert(err.response?.data?.message || 'Có lỗi xảy ra khi tạo giao dịch đặt cọc. Vui lòng thử lại!');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePrintReceipt = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Biên lai đặt cọc ký quỹ - BDS Pro</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #1e293b; }
+            .header { text-align: center; border-bottom: 2px solid #059669; padding-bottom: 20px; }
+            .logo { font-size: 26px; font-weight: 800; color: #059669; letter-spacing: -0.5px; }
+            .title { font-size: 20px; font-weight: 700; margin-top: 10px; text-transform: uppercase; }
+            .receipt-no { color: #64748b; font-size: 13px; margin-top: 4px; }
+            .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 24px 0; }
+            .row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
+            .label { color: #64748b; font-weight: 500; }
+            .value { font-weight: 700; color: #0f172a; text-align: right; }
+            .stamp { text-align: right; margin-top: 40px; }
+            .stamp-badge { display: inline-block; border: 3px double #059669; color: #059669; padding: 8px 16px; border-radius: 8px; font-weight: 800; text-transform: uppercase; transform: rotate(-5deg); }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo">BDS PRO — HỆ THỐNG GIAO DỊCH BẤT ĐỘNG SẢN</div>
+            <div class="title">BIÊN LAI XÁC NHẬN KÝ QUỸ ĐẶT CỌC GIỮ CHỖ (ESCROW)</div>
+            <div class="receipt-no">Mã biên nhận: ${depositResult?.receiptId || 'REC_' + Date.now()}</div>
+          </div>
+          <div class="box">
+            <div class="row"><span class="label">Bất động sản:</span><span class="value">${property.title}</span></div>
+            <div class="row"><span class="label">Địa chỉ:</span><span class="value">${property.address}, ${property.district}, ${property.city}</span></div>
+            <div class="row"><span class="label">Hình thức giao dịch:</span><span class="value">${isRent ? 'Cho thuê căn hộ' : 'Mua bán nhà đất'}</span></div>
+            <div class="row"><span class="label">Tổng giá trị niêm yết:</span><span class="value">${formatPrice(property.price, property.transactionType)}</span></div>
+            <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 16px 0;" />
+            <div class="row"><span class="label">Họ tên người đặt cọc:</span><span class="value">${buyerName}</span></div>
+            <div class="row"><span class="label">Số điện thoại liên hệ:</span><span class="value">${buyerPhone}</span></div>
+            <div class="row"><span class="label">Số CCCD / CMND:</span><span class="value">${buyerIdCard}</span></div>
+            <div class="row"><span class="label">Số tiền ký quỹ đặt cọc:</span><span class="value" style="font-size: 18px; color: #059669;">${depositAmount.toLocaleString('vi-VN')} VNĐ</span></div>
+            <div class="row"><span class="label">Phương thức thanh toán:</span><span class="value">${paymentMethod === 'bank' ? 'Chuyển khoản VietQR' : paymentMethod === 'momo' ? 'Ví điện tử MoMo' : 'Cổng VNPay'}</span></div>
+            <div class="row"><span class="label">Tài khoản thụ hưởng Escrow:</span><span class="value">${paymentMethod === 'momo' ? 'Ví MoMo: 0332536815 (CAO VĂN BẢO)' : 'VPBank: 0332536815 (CAO VĂN BẢO)'}</span></div>
+            <div class="row"><span class="label">Tình trạng ký quỹ:</span><span class="value" style="color: #059669;">Đã nạp vào tài khoản Escrow sàn BDS Pro</span></div>
+            <div class="row"><span class="label">Thời gian xác nhận:</span><span class="value">${new Date().toLocaleString('vi-VN')}</span></div>
+          </div>
+          <div class="stamp">
+            <div class="stamp-badge">✓ ĐÃ KÝ QUỸ BẢO ĐẢM 100%<br/><span style="font-size: 10px;">BDS PRO ESCROW VERIFIED</span></div>
+            <p style="margin-top: 8px; font-size: 13px; font-weight: bold; color: #334155;">ĐẠI DIỆN SÀN GIAO DỊCH BDS PRO</p>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg animate-fade-in rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-brand-600" />
-            <h2 className="font-bold text-slate-900">Đặt cọc an toàn</h2>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden rounded-3xl bg-white shadow-2xl border border-slate-100">
+        {/* Top Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-4 text-white">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md">
+              <ShieldCheck className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-bold">Đặt cọc an toàn &amp; Ký quỹ Escrow</h2>
+              <p className="text-xs text-emerald-100">
+                {step === 1 && 'Bước 1/3: Thỏa thuận & Chọn mức tiền cọc'}
+                {step === 2 && 'Bước 2/3: Chọn cổng thanh toán & Quét mã'}
+                {step === 3 && 'Bước 3/3: Biên lai xác nhận ký quỹ thành công'}
+              </p>
+            </div>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-1 hover:bg-slate-100">
-            <X className="h-5 w-5 text-slate-400" />
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl p-1.5 text-white/80 hover:bg-white/20 hover:text-white transition cursor-pointer"
+          >
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="p-6">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* ──────── STEP 1: CHỌN MỨC TIỀN CỌC & THÔNG TIN ──────── */}
           {step === 1 && (
-            <div className="space-y-4">
-              <div className="rounded-xl bg-slate-50 p-4">
-                <p className="font-medium text-slate-900 line-clamp-2">{property.title}</p>
-                <p className="mt-1 text-brand-700 font-bold">{formatPrice(property.price, property.transactionType)}</p>
+            <div className="space-y-5">
+              {/* Property Card Summary */}
+              <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+                <img
+                  src={property.images?.[0] || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800'}
+                  alt={property.title}
+                  className="h-20 w-24 rounded-xl object-cover shrink-0 shadow-xs"
+                />
+                <div className="min-w-0 flex-1">
+                  <span className="inline-block rounded-md bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
+                    {isRent ? 'Căn hộ cho thuê' : 'Bất động sản mua bán'}
+                  </span>
+                  <h4 className="text-sm font-bold text-slate-900 truncate mt-1">{property.title}</h4>
+                  <p className="text-xs text-slate-500 truncate mt-0.5">
+                    📍 {property.address}, {property.district}, {property.city}
+                  </p>
+                  <p className="text-sm font-extrabold text-emerald-700 mt-1">
+                    Giá niêm yết: {formatPrice(property.price, property.transactionType)}
+                  </p>
+                </div>
               </div>
+
+              {/* Deposit Presets */}
               <div>
-                <label className="text-sm font-medium text-slate-700">Số tiền cọc</label>
-                <p className="mt-1 text-2xl font-bold text-slate-900">{depositAmount.toLocaleString('vi-VN')} đ</p>
-                <p className="text-xs text-slate-500">Tiền giữ qua escrow — hoàn trả nếu giao dịch không thành</p>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+                  1. Chọn số tiền đặt cọc giữ chỗ
+                </label>
+                <div className="grid grid-cols-3 gap-2.5">
+                  {(isRent ? [5_000_000, 10_000_000, 15_000_000] : [50_000_000, 100_000_000, 200_000_000]).map(
+                    (amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => {
+                          setDepositAmount(amt);
+                          setCustomAmountStr('');
+                        }}
+                        className={`rounded-2xl border p-3 text-center transition cursor-pointer ${
+                          depositAmount === amt && !customAmountStr
+                            ? 'border-emerald-600 bg-emerald-50/80 text-emerald-900 ring-2 ring-emerald-500/30 font-bold'
+                            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-semibold'
+                        }`}
+                      >
+                        <p className="text-sm">{(amt / 1_000_000).toLocaleString('vi-VN')} triệu</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">
+                          {isRent ? `${amt / 5_000_000} tháng cọc` : 'Cọc mua nhà'}
+                        </p>
+                      </button>
+                    ),
+                  )}
+                </div>
+
+                {/* Custom Amount input */}
+                <div className="mt-3">
+                  <input
+                    type="number"
+                    value={customAmountStr}
+                    placeholder="Hoặc tự nhập số tiền cọc tùy chỉnh (VNĐ)..."
+                    onChange={(e) => {
+                      setCustomAmountStr(e.target.value);
+                      const n = parseInt(e.target.value, 10);
+                      if (!isNaN(n) && n > 0) setDepositAmount(n);
+                    }}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500 focus:bg-white"
+                  />
+                </div>
               </div>
+
+              {/* Buyer Contact Information */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+                  2. Thông tin pháp lý người đặt cọc
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <span className="text-[11px] font-semibold text-slate-500">Họ và tên</span>
+                    <input
+                      type="text"
+                      value={buyerName}
+                      onChange={(e) => setBuyerName(e.target.value)}
+                      placeholder="Nguyễn Văn A"
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-emerald-500 focus:bg-white"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-semibold text-slate-500">Số điện thoại</span>
+                    <input
+                      type="text"
+                      value={buyerPhone}
+                      onChange={(e) => setBuyerPhone(e.target.value)}
+                      placeholder="0901234567"
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-emerald-500 focus:bg-white"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-semibold text-slate-500">Số CCCD / CMND</span>
+                    <input
+                      type="text"
+                      value={buyerIdCard}
+                      onChange={(e) => setBuyerIdCard(e.target.value)}
+                      placeholder="079201008899"
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-emerald-500 focus:bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Note / Terms */}
+              <div>
+                <span className="text-[11px] font-semibold text-slate-500">Thỏa thuận / Ghi chú đặt cọc</span>
+                <textarea
+                  rows={2}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-800 outline-none focus:border-emerald-500 focus:bg-white"
+                />
+              </div>
+
+              {/* Escrow Guarantee Box */}
+              <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/70 p-4 space-y-2">
+                <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs sm:text-sm">
+                  <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0" />
+                  <span>Cơ chế bảo vệ tiền cọc trung gian (BDS Pro Escrow)</span>
+                </div>
+                <p className="text-xs text-emerald-700 leading-relaxed">
+                  Tiền cọc của bạn được lưu trữ an toàn trong tài khoản ký quỹ của Sàn. Số tiền này chỉ được giải ngân cho
+                  Môi giới/Chủ nhà khi hai bên đã gặp mặt công chứng hoặc ký kết hợp đồng chính thức. Bạn được quyền khiếu
+                  nại hoàn cọc 100% nếu căn hộ có sai lệch thực tế.
+                </p>
+                <label className="flex items-center gap-2 pt-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreeTerms}
+                    onChange={(e) => setAgreeTerms(e.target.checked)}
+                    className="h-4 w-4 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-xs font-semibold text-slate-800">
+                    Tôi đã đọc và đồng ý với điều khoản ký quỹ đặt cọc an toàn
+                  </span>
+                </label>
+              </div>
+
+              {/* Action Button */}
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="w-full rounded-xl bg-brand-600 py-3 font-semibold text-white hover:bg-brand-700"
+                disabled={!agreeTerms || depositAmount <= 0}
+                className="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 hover:from-emerald-700 hover:to-teal-700 transition cursor-pointer disabled:opacity-50"
               >
-                Tiếp tục thanh toán
+                Tiến hành thanh toán ({depositAmount.toLocaleString('vi-VN')} đ) →
               </button>
             </div>
           )}
 
+          {/* ──────── STEP 2: CHỌN CỔNG THANH TOÁN & QUÉT MÃ ──────── */}
           {step === 2 && (
-            <div className="space-y-4">
-              <p className="text-sm text-slate-600">Chọn cổng thanh toán (sandbox demo)</p>
-              {(['vnpay', 'momo', 'bank'] as const).map((method) => (
+            <div className="space-y-5">
+              {/* Method Switcher */}
+              <div className="grid grid-cols-3 gap-2">
                 <button
-                  key={method}
                   type="button"
-                  onClick={() => setStep(3)}
-                  className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-4 hover:border-brand-500 hover:bg-brand-50"
+                  onClick={() => setPaymentMethod('bank')}
+                  className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-3 transition cursor-pointer ${
+                    paymentMethod === 'bank'
+                      ? 'border-emerald-600 bg-emerald-50/80 text-emerald-800 ring-2 ring-emerald-500/20 font-bold'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
                 >
-                  <CreditCard className="h-5 w-5 text-brand-600" />
-                  <span className="font-medium uppercase">{method === 'bank' ? 'Chuyển khoản' : method}</span>
+                  <QrCode className="h-5 w-5 text-emerald-600" />
+                  <span className="text-xs">Chuyển khoản VietQR</span>
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('vnpay')}
+                  className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-3 transition cursor-pointer ${
+                    paymentMethod === 'vnpay'
+                      ? 'border-sky-600 bg-sky-50 text-sky-800 ring-2 ring-sky-500/20 font-bold'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <CreditCard className="h-5 w-5 text-sky-600" />
+                  <span className="text-xs">Cổng VNPay</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('momo')}
+                  className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-3 transition cursor-pointer ${
+                    paymentMethod === 'momo'
+                      ? 'border-pink-600 bg-pink-50 text-pink-800 ring-2 ring-pink-500/20 font-bold'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Smartphone className="h-5 w-5 text-pink-600" />
+                  <span className="text-xs">Ví MoMo</span>
+                </button>
+              </div>
+
+              {/* PAYMENT VIEW: VIETQR */}
+              {paymentMethod === 'bank' && (
+                <div className="rounded-3xl border border-slate-200/90 bg-slate-50/70 p-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+                    {/* QR Code Column */}
+                    <div className="flex flex-col items-center justify-center rounded-2xl bg-white p-4 shadow-sm border border-slate-100">
+                      <img
+                        src={vietQrUrl}
+                        alt="Mã VietQR đặt cọc BDS Pro"
+                        className="h-52 w-52 object-contain rounded-xl"
+                      />
+                      <p className="mt-2 text-center text-[11px] font-semibold text-slate-500">
+                        Mở App Ngân hàng bất kỳ để quét mã thanh toán tức thì
+                      </p>
+                    </div>
+
+                    {/* Bank Info Details Column */}
+                    <div className="space-y-3 text-xs">
+                      <div className="rounded-xl bg-white p-3 border border-slate-100">
+                        <span className="text-[10px] uppercase font-bold text-slate-400">Ngân hàng thụ hưởng</span>
+                        <p className="font-bold text-slate-800 mt-0.5">{ESCROW_BANK.bankName}</p>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-3 border border-slate-100 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400">Số tài khoản Ký quỹ</span>
+                          <p className="font-mono text-base font-extrabold text-emerald-700 mt-0.5">
+                            {ESCROW_BANK.accountNumber}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(ESCROW_BANK.accountNumber, 'acc')}
+                          className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700 transition cursor-pointer"
+                          title="Sao chép STK"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-3 border border-slate-100 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400">Số tiền đặt cọc</span>
+                          <p className="text-base font-extrabold text-slate-900 mt-0.5">
+                            {depositAmount.toLocaleString('vi-VN')} VNĐ
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(depositAmount.toString(), 'amt')}
+                          className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700 transition cursor-pointer"
+                          title="Sao chép số tiền"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-3 border border-slate-100 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400">Nội dung chuyển khoản</span>
+                          <p className="font-mono font-bold text-indigo-700 mt-0.5">{ESCROW_BANK.transferContent}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(ESCROW_BANK.transferContent, 'content')}
+                          className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700 transition cursor-pointer"
+                          title="Sao chép nội dung"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      {copiedField && (
+                        <p className="text-center text-[11px] font-bold text-emerald-600">✓ Đã sao chép vào bộ nhớ tạm!</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PAYMENT VIEW: MOMO PAY */}
+              {paymentMethod === 'momo' && (
+                <div className="rounded-3xl border border-pink-200/90 bg-gradient-to-b from-pink-50/80 to-white p-5 shadow-xs">
+                  <div className="mb-4 flex items-center justify-between border-b border-pink-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#a50064] text-white font-black text-xs shadow-xs">
+                        momo
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-extrabold text-[#a50064]">Cổng thanh toán Ví MoMo</h4>
+                        <p className="text-[10px] text-slate-500">Chuyển tiền MoMo P2P ký quỹ tức thì 24/7</p>
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-pink-100 px-2.5 py-0.5 text-[11px] font-bold text-[#a50064] border border-pink-200">
+                      ✓ Đã xác thực
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+                    {/* QR Code Column */}
+                    <div className="flex flex-col items-center justify-center rounded-2xl bg-white p-4 shadow-sm border border-pink-100">
+                      <div className="relative">
+                        <img
+                          src={momoQrUrl}
+                          alt="Mã MoMo QR đặt cọc BDS Pro"
+                          className="h-52 w-52 object-contain rounded-xl"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="h-9 w-9 rounded-xl bg-white shadow-md p-1 flex items-center justify-center border border-pink-100">
+                            <span className="text-[10px] font-black text-[#a50064]">momo</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="mt-2 text-center text-[11px] font-semibold text-slate-500">
+                        Mở App MoMo quét mã QR để chuyển tiền cọc tự động
+                      </p>
+                    </div>
+
+                    {/* MoMo Info Details Column */}
+                    <div className="space-y-2.5 text-xs">
+                      <div className="rounded-xl bg-white p-3 border border-pink-100/80 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400">Số điện thoại Ví MoMo</span>
+                          <p className="font-mono text-base font-extrabold text-[#a50064] mt-0.5">
+                            {MOMO_WALLET.phone}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(MOMO_WALLET.phone, 'momo_phone')}
+                          className="rounded-lg bg-pink-50 p-2 text-[#a50064] hover:bg-pink-100 transition cursor-pointer"
+                          title="Sao chép SĐT MoMo"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-3 border border-pink-100/80">
+                        <span className="text-[10px] uppercase font-bold text-slate-400">Tên chủ ví nhận cọc</span>
+                        <p className="font-bold text-slate-800 mt-0.5">{MOMO_WALLET.accountName}</p>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-3 border border-pink-100/80 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400">Số tiền đặt cọc</span>
+                          <p className="text-base font-extrabold text-slate-900 mt-0.5">
+                            {depositAmount.toLocaleString('vi-VN')} VNĐ
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(depositAmount.toString(), 'momo_amt')}
+                          className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-pink-100 hover:text-[#a50064] transition cursor-pointer"
+                          title="Sao chép số tiền"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-3 border border-pink-100/80 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400">Lời nhắn chuyển tiền</span>
+                          <p className="font-mono font-bold text-[#a50064] mt-0.5">{MOMO_WALLET.transferContent}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(MOMO_WALLET.transferContent, 'momo_msg')}
+                          className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-pink-100 hover:text-[#a50064] transition cursor-pointer"
+                          title="Sao chép lời nhắn"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      {/* Direct Deep Link on Mobile */}
+                      <a
+                        href={momoDeepLink}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-pink-100 py-2.5 text-xs font-bold text-[#a50064] hover:bg-pink-200 transition"
+                      >
+                        <Smartphone className="h-4 w-4" />
+                        <span>Mở trực tiếp trên App MoMo</span>
+                      </a>
+
+                      {copiedField && (
+                        <p className="text-center text-[11px] font-bold text-[#a50064]">✓ Đã sao chép vào bộ nhớ tạm!</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PAYMENT VIEW: VNPAY SANDBOX */}
+              {paymentMethod === 'vnpay' && (
+                <div className="rounded-3xl border border-sky-200/90 bg-gradient-to-b from-sky-50/80 to-white p-6 text-center space-y-4">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-600 text-white shadow-md">
+                    <CreditCard className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-slate-900 text-base">Cổng thanh toán điện tử VNPay</h4>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                      Hỗ trợ thẻ ATM nội địa (Vietcombank, BIDV, Agribank, Vietinbank...) và thẻ quốc tế Visa / MasterCard.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-white p-4 border border-sky-100 max-w-sm mx-auto">
+                    <span className="text-xs text-slate-500">Số tiền đặt cọc giữ chỗ:</span>
+                    <p className="text-xl font-black text-sky-700 mt-0.5">
+                      {depositAmount.toLocaleString('vi-VN')} VNĐ
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Realtime Auto-Detection Notice (SePay Webhook) */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl bg-emerald-50/90 border border-emerald-200/90 p-3.5 text-xs text-emerald-900 shadow-xs">
+                <div className="flex items-center gap-2.5">
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                  </span>
+                  <div>
+                    <p className="font-bold text-emerald-950 flex items-center gap-1.5">
+                      <span>Lắng nghe biến động số dư tự động (SePay Webhook)</span>
+                      <span className="rounded-md bg-emerald-200/70 px-1.5 py-0.5 text-[10px] font-black text-emerald-800">
+                        24/7 LIVE
+                      </span>
+                    </p>
+                    <p className="text-[11px] text-emerald-700 mt-0.5">
+                      Sau khi chuyển khoản 1-3 giây, hệ thống sẽ tự động chuyển sang trang Biên lai mà không cần bấm nút.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Simulate Button for Demo */}
+                <button
+                  type="button"
+                  onClick={handleSimulatePayment}
+                  disabled={isSimulating}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-white px-3 py-1.5 font-bold text-emerald-700 border border-emerald-300 shadow-xs hover:bg-emerald-100 hover:text-emerald-900 transition cursor-pointer text-[11px] whitespace-nowrap disabled:opacity-50"
+                  title="Nhấn để giả lập biến động số dư SePay tự động phát hiện cọc"
+                >
+                  {isSimulating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                  )}
+                  <span>Test nhận tiền tự động (Demo)</span>
+                </button>
+              </div>
+
+              {/* Navigation Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  disabled={isSubmitting}
+                  className="rounded-2xl border border-slate-200 px-5 py-3 text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                >
+                  ← Quay lại
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmPayment}
+                  disabled={isSubmitting}
+                  className={`flex-1 inline-flex items-center justify-center gap-2 rounded-2xl py-3.5 text-xs sm:text-sm font-bold text-white shadow-lg transition cursor-pointer disabled:opacity-50 ${
+                    paymentMethod === 'momo'
+                      ? 'bg-gradient-to-r from-[#a50064] to-[#d82d8b] shadow-pink-600/20 hover:opacity-95'
+                      : paymentMethod === 'vnpay'
+                      ? 'bg-gradient-to-r from-sky-600 to-blue-700 shadow-sky-600/20 hover:opacity-95'
+                      : 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-600/20 hover:from-emerald-700 hover:to-teal-700'
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin text-white" />
+                      <span>Đang xác nhận giao dịch...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>
+                        {paymentMethod === 'momo'
+                          ? 'Xác nhận đã chuyển tiền qua MoMo'
+                          : paymentMethod === 'vnpay'
+                          ? 'Xác nhận thanh toán qua VNPay'
+                          : 'Xác nhận đã chuyển tiền ký quỹ'}
+                      </span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           )}
 
-          {step === 3 && (
-            <div className="text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-                <Shield className="h-8 w-8 text-emerald-600" />
+          {/* ──────── STEP 3: BIÊN LAI XÁC NHẬN KÝ QUỸ THÀNH CÔNG ──────── */}
+          {step === 3 && depositResult && (
+            <div className="space-y-6 text-center py-2 animate-in zoom-in-95 duration-200">
+              {/* Green Stamp Icon */}
+              <div className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-100 text-emerald-600 shadow-inner">
+                <ShieldCheck className="h-10 w-10" />
+                <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white text-xs font-bold ring-2 ring-white">
+                  ✓
+                </span>
               </div>
-              <h3 className="mt-4 text-lg font-bold text-slate-900">Thanh toán thành công!</h3>
-              <p className="mt-2 text-sm text-slate-500">Mã biên lai: VN20260815001</p>
-              <p className="mt-1 text-sm text-slate-500">Môi giới và Admin đã được thông báo</p>
-              <button type="button" onClick={onClose} className="mt-6 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white">
-                Hoàn tất
-              </button>
+
+              <div>
+                <h3 className="text-xl font-extrabold text-slate-900">Ký quỹ đặt cọc thành công!</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Mã biên lai giao dịch: <strong className="font-mono text-emerald-700">#{depositResult.receiptId}</strong>
+                </p>
+              </div>
+
+              {/* Summary Details Ticket */}
+              <div className="rounded-3xl border border-dashed border-emerald-300 bg-emerald-50/50 p-5 text-left text-xs space-y-2.5">
+                <div className="flex justify-between items-center border-b border-emerald-100 pb-2">
+                  <span className="text-slate-500">Căn hộ đặt cọc:</span>
+                  <span className="font-bold text-slate-900 truncate max-w-[280px]">{property.title}</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-emerald-100 pb-2">
+                  <span className="text-slate-500">Người đặt cọc:</span>
+                  <span className="font-bold text-slate-900">
+                    {buyerName} ({buyerPhone})
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-b border-emerald-100 pb-2">
+                  <span className="text-slate-500">Số tiền ký quỹ:</span>
+                  <span className="text-sm font-extrabold text-emerald-800">
+                    {depositAmount.toLocaleString('vi-VN')} VNĐ
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Tình trạng bảo vệ tiền:</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+                    <Lock className="h-3 w-3" /> Đang giữ qua Escrow
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons: Print PDF & Navigate */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handlePrintReceipt}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-3 text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                >
+                  <Printer className="h-4 w-4 text-emerald-600" />
+                  <span>In biên lai / Hợp đồng cọc</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    navigate(CLIENT_ROUTES.deals);
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3 text-xs sm:text-sm font-bold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 transition cursor-pointer"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span>Xem trong Giao dịch của tôi</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
       </div>
     </div>
-  )
+  );
 }
