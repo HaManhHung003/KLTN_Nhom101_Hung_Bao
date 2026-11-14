@@ -104,7 +104,7 @@ export class TransactionsService {
     if (!property) throw new NotFoundException('Không tìm thấy bất động sản');
 
     const receiverPhone = '0332536815';
-    const receiverName = 'CAO VAN BAO';
+    const receiverName = 'Cao Văn Bảo';
     const transferContent = `BDSCOC ${property.id.slice(-6).toUpperCase()}`;
     const momoQrData = `2|99|${receiverPhone}|${receiverName}||0|0|${dto.amount}|${transferContent}|transfer_myqr`;
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(momoQrData)}`;
@@ -115,7 +115,7 @@ export class TransactionsService {
       success: true,
       orderId,
       receiverPhone,
-      receiverName: 'CAO VĂN BẢO',
+      receiverName: 'Cao Văn Bảo',
       amount: dto.amount,
       transferContent,
       qrCodeUrl,

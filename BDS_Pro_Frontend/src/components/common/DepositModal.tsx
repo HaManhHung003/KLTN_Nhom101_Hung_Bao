@@ -62,7 +62,7 @@ export function DepositModal({ property, onClose, onSuccess }: DepositModalProps
   // MoMo Wallet Details
   const MOMO_WALLET = {
     phone: '0332536815',
-    accountName: 'CAO VĂN BẢO',
+    accountName: 'Cao Văn Bảo',
     transferContent: `BDSCOC ${property.id.slice(-6).toUpperCase()}`,
   };
 
