@@ -34,17 +34,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(parsedUser);
           setToken(savedToken);
           api.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
-        } else {
-          // Mặc định đăng nhập tài khoản Khách hàng Cao Văn Bảo để thuận tiện test
-          const defaultUser: UserProfile = {
-            id: 'u-bao',
-            name: 'Cao Văn Bảo',
-            email: 'baocao@gmail.com',
-            phone: '0332536815',
-            role: 'buyer',
-            avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
-          };
-          setUser(defaultUser);
         }
       } catch (e) {
         console.log('Error reading auth cache');
