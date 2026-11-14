@@ -21,8 +21,14 @@ function MainApp() {
 
   const loadData = async () => {
     setRefreshing(true);
-    const data = await propertyService.getProperties();
-    setProperties(data);
+    const [propsData, favsData] = await Promise.all([
+      propertyService.getProperties(),
+      propertyService.getFavorites(),
+    ]);
+    setProperties(propsData);
+    if (favsData && favsData.length > 0) {
+      setFavorites(favsData);
+    }
     setRefreshing(false);
   };
 
@@ -30,10 +36,11 @@ function MainApp() {
     loadData();
   }, []);
 
-  const handleToggleFavorite = (id: string) => {
+  const handleToggleFavorite = async (id: string) => {
     setFavorites((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
+    await propertyService.toggleFavorite(id);
   };
 
   return (

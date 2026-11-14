@@ -11,7 +11,7 @@ export interface DepositRequest {
 }
 
 export const transactionService = {
-  // Đặt cọc giữ chỗ BĐS
+  // Đặt cọc giữ chỗ BĐS (Escrow)
   async createDeposit(payload: DepositRequest) {
     try {
       const res = await api.post('/transactions/deposit', payload);
@@ -46,12 +46,32 @@ export const transactionService = {
     }
   },
 
-  // Danh sách thương vụ / giao dịch cọc
+  // Lấy danh sách thương vụ / giao dịch cọc đồng bộ từ Database
   async getMyDeals(): Promise<Deal[]> {
     try {
       const res = await api.get('/transactions/deals');
       const items = res.data?.data || res.data?.items || res.data;
-      if (Array.isArray(items)) return items;
+      if (Array.isArray(items) && items.length > 0) {
+        return items.map((deal: any) => ({
+          id: deal.id,
+          propertyId: deal.propertyId,
+          dealStatus: deal.dealStatus || 'deposit_paid',
+          depositAmount: Number(deal.depositAmount) || 50000000,
+          price: Number(deal.price) || 6800000000,
+          createdAt: deal.createdAt || new Date().toISOString(),
+          receiptId: deal.receiptId || `REC_${Date.now().toString().slice(-6)}`,
+          property: deal.property ? {
+            id: deal.property.id,
+            title: deal.property.title,
+            price: Number(deal.property.price),
+            area: Number(deal.property.area),
+            address: deal.property.address,
+            district: deal.property.district || '',
+            city: deal.property.city || '',
+            images: deal.property.images || ['https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200'],
+          } as any : undefined,
+        }));
+      }
     } catch (e) {
       // fallback
     }

@@ -1,13 +1,13 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
 
-// Địa chỉ Backend API:
-// - Android Emulator: 10.0.2.2:4000
-// - iOS Simulator / Web: localhost:4000
-// - Thiết bị thật: IP mạng LAN (ví dụ 192.168.1.x:4000)
+// Địa chỉ IPv4 của máy tính trên mạng Wi-Fi
+// Cho phép cả Trình duyệt Web và Điện thoại thật (Expo Go) kết nối đồng bộ 100% vào chung 1 Database MySQL
+export const LAN_IP = '192.168.1.93';
+
 export const BASE_URL = Platform.select({
-  android: 'http://10.0.2.2:4000/api/v1',
-  ios: 'http://localhost:4000/api/v1',
+  android: `http://${LAN_IP}:4000/api/v1`,
+  ios: `http://${LAN_IP}:4000/api/v1`,
   default: 'http://localhost:4000/api/v1',
 });
 
