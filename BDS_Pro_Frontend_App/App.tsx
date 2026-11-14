@@ -3,14 +3,16 @@ import { View, StyleSheet, SafeAreaView, Platform, StatusBar as RNStatusBar } fr
 import { StatusBar } from 'expo-status-bar';
 import { Property } from './src/types';
 import { propertyService } from './src/services/property.service';
+import { AuthProvider } from './src/context/AuthContext';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { GpsSearchScreen } from './src/screens/GpsSearchScreen';
 import { DealsScreen } from './src/screens/DealsScreen';
 import { FavoritesScreen } from './src/screens/FavoritesScreen';
+import { ProfileScreen } from './src/screens/ProfileScreen';
 import { PropertyDetailScreen } from './src/screens/PropertyDetailScreen';
 import { BottomTabBar, TabType } from './src/components/BottomTabBar';
 
-export default function App() {
+function MainApp() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
@@ -58,6 +60,7 @@ export default function App() {
                 onToggleFavorite={handleToggleFavorite}
                 onRefresh={loadData}
                 refreshing={refreshing}
+                onOpenProfile={() => setActiveTab('profile')}
               />
             )}
 
@@ -88,7 +91,14 @@ export default function App() {
               />
             )}
 
-            {/* Bottom Tab Navigation Bar */}
+            {activeTab === 'profile' && (
+              <ProfileScreen
+                onNavigateToDeals={() => setActiveTab('deals')}
+                onNavigateToFavorites={() => setActiveTab('favorites')}
+              />
+            )}
+
+            {/* Bottom Tab Navigation Bar (5 tabs) */}
             <BottomTabBar
               activeTab={activeTab}
               onTabChange={setActiveTab}
@@ -98,6 +108,14 @@ export default function App() {
         )}
       </View>
     </SafeAreaView>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
   );
 }
 

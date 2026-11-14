@@ -20,6 +20,7 @@ interface HomeScreenProps {
   onToggleFavorite: (id: string) => void;
   onRefresh: () => void;
   refreshing: boolean;
+  onOpenProfile?: () => void;
 }
 
 export function HomeScreen({
@@ -29,6 +30,7 @@ export function HomeScreen({
   onToggleFavorite,
   onRefresh,
   refreshing,
+  onOpenProfile,
 }: HomeScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'sale' | 'rent'>('all');
@@ -56,9 +58,9 @@ export function HomeScreen({
           <Text style={styles.appTitle}>BDS Pro Mobile</Text>
         </View>
 
-        <View style={styles.avatarWrap}>
+        <TouchableOpacity style={styles.avatarWrap} onPress={onOpenProfile}>
           <Text style={styles.avatarText}>VB</Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* Search Input Bar */}

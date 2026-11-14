@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-export type TabType = 'home' | 'gps' | 'deals' | 'favorites';
+export type TabType = 'home' | 'gps' | 'deals' | 'favorites' | 'profile';
 
 interface BottomTabBarProps {
   activeTab: TabType;
@@ -16,6 +16,7 @@ export function BottomTabBar({ activeTab, onTabChange, favoritesCount = 0 }: Bot
     { id: 'gps' as TabType, label: 'Quanh đây', icon: 'navigate', iconOutline: 'navigate-outline' },
     { id: 'deals' as TabType, label: 'Ký quỹ', icon: 'shield-checkmark', iconOutline: 'shield-checkmark-outline' },
     { id: 'favorites' as TabType, label: 'Đã lưu', icon: 'heart', iconOutline: 'heart-outline', badge: favoritesCount },
+    { id: 'profile' as TabType, label: 'Tài khoản', icon: 'person', iconOutline: 'person-outline' },
   ];
 
   return (
