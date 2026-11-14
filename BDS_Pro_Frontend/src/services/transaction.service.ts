@@ -104,6 +104,12 @@ export const transactionService = {
     return res.data;
   },
 
+  /** Khởi tạo thông tin & mã QR đặt cọc qua Ví MoMo */
+  async createMomoPayment(payload: DepositPayload) {
+    const res = await api.post('/transactions/momo/create', payload);
+    return res.data;
+  },
+
   /** Lấy danh sách thương vụ của người dùng hiện tại */
   async getMyDeals(params?: { status?: string; page?: number; limit?: number }) {
     const res = await api.get('/transactions/deals', { params });

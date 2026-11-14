@@ -96,6 +96,38 @@ export class TransactionsService {
     };
   }
 
+  /**
+   * Khởi tạo thông tin thanh toán & mã QR đặt cọc Ví điện tử MoMo
+   */
+  async createMomoPayment(buyerId: string, dto: CreateDepositPaymentDto) {
+    const property = await this.propRepo.findOne({ where: { id: dto.propertyId } });
+    if (!property) throw new NotFoundException('Không tìm thấy bất động sản');
+
+    const receiverPhone = '0332536815';
+    const receiverName = 'CAO VAN BAO';
+    const transferContent = `BDSCOC ${property.id.slice(-6).toUpperCase()}`;
+    const momoQrData = `2|99|${receiverPhone}|${receiverName}||0|0|${dto.amount}|${transferContent}|transfer_myqr`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(momoQrData)}`;
+    const deepLink = `momo://?action=transfer&phone=${receiverPhone}&amount=${dto.amount}&note=${encodeURIComponent(transferContent)}`;
+    const orderId = `MOMO_${Date.now()}_${Math.floor(Math.random() * 900 + 100)}`;
+
+    return {
+      success: true,
+      orderId,
+      receiverPhone,
+      receiverName: 'CAO VĂN BẢO',
+      amount: dto.amount,
+      transferContent,
+      qrCodeUrl,
+      deepLink,
+      property: {
+        id: property.id,
+        title: property.title,
+        price: property.price,
+      },
+    };
+  }
+
   // Deals
   async createDeal(buyerId: string, dto: CreateDealDto) {
     const deal = this.dealRepo.create({

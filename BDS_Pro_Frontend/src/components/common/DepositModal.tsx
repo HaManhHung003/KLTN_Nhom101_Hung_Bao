@@ -59,6 +59,19 @@ export function DepositModal({ property, onClose, onSuccess }: DepositModalProps
     ESCROW_BANK.transferContent,
   )}&accountName=${encodeURIComponent(ESCROW_BANK.accountName)}`;
 
+  // MoMo Wallet Details
+  const MOMO_WALLET = {
+    phone: '0332536815',
+    accountName: 'CAO VĂN BẢO',
+    transferContent: `BDSCOC ${property.id.slice(-6).toUpperCase()}`,
+  };
+
+  const momoQrData = `2|99|0332536815|CAO VAN BAO||0|0|${depositAmount}|${MOMO_WALLET.transferContent}|transfer_myqr`;
+  const momoQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(momoQrData)}`;
+  const momoDeepLink = `momo://?action=transfer&phone=0332536815&amount=${depositAmount}&note=${encodeURIComponent(
+    MOMO_WALLET.transferContent,
+  )}`;
+
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
@@ -133,8 +146,8 @@ export function DepositModal({ property, onClose, onSuccess }: DepositModalProps
             <div class="row"><span class="label">Số điện thoại liên hệ:</span><span class="value">${buyerPhone}</span></div>
             <div class="row"><span class="label">Số CCCD / CMND:</span><span class="value">${buyerIdCard}</span></div>
             <div class="row"><span class="label">Số tiền ký quỹ đặt cọc:</span><span class="value" style="font-size: 18px; color: #059669;">${depositAmount.toLocaleString('vi-VN')} VNĐ</span></div>
-            <div class="row"><span class="label">Phương thức thanh toán:</span><span class="value">${paymentMethod === 'bank' ? 'Chuyển khoản VietQR' : paymentMethod === 'vnpay' ? 'Cổng VNPay' : 'Ví MoMo'}</span></div>
-            <div class="row"><span class="label">Tài khoản thụ hưởng Escrow:</span><span class="value">VPBank - 0332536815 (CAO VĂN BẢO)</span></div>
+            <div class="row"><span class="label">Phương thức thanh toán:</span><span class="value">${paymentMethod === 'bank' ? 'Chuyển khoản VietQR' : paymentMethod === 'momo' ? 'Ví điện tử MoMo' : 'Cổng VNPay'}</span></div>
+            <div class="row"><span class="label">Tài khoản thụ hưởng Escrow:</span><span class="value">${paymentMethod === 'momo' ? 'Ví MoMo: 0332536815 (CAO VĂN BẢO)' : 'VPBank: 0332536815 (CAO VĂN BẢO)'}</span></div>
             <div class="row"><span class="label">Tình trạng ký quỹ:</span><span class="value" style="color: #059669;">Đã nạp vào tài khoản Escrow sàn BDS Pro</span></div>
             <div class="row"><span class="label">Thời gian xác nhận:</span><span class="value">${new Date().toLocaleString('vi-VN')}</span></div>
           </div>
@@ -458,23 +471,135 @@ export function DepositModal({ property, onClose, onSuccess }: DepositModalProps
                 </div>
               )}
 
-              {/* PAYMENT VIEW: VNPAY / MOMO SIMULATION */}
-              {paymentMethod !== 'bank' && (
-                <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-6 text-center space-y-3">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm border border-slate-100">
-                    {paymentMethod === 'vnpay' ? (
-                      <CreditCard className="h-8 w-8 text-sky-600" />
-                    ) : (
-                      <Smartphone className="h-8 w-8 text-pink-600" />
-                    )}
+              {/* PAYMENT VIEW: MOMO PAY */}
+              {paymentMethod === 'momo' && (
+                <div className="rounded-3xl border border-pink-200/90 bg-gradient-to-b from-pink-50/80 to-white p-5 shadow-xs">
+                  <div className="mb-4 flex items-center justify-between border-b border-pink-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#a50064] text-white font-black text-xs shadow-xs">
+                        momo
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-extrabold text-[#a50064]">Cổng thanh toán Ví MoMo</h4>
+                        <p className="text-[10px] text-slate-500">Chuyển tiền MoMo P2P ký quỹ tức thì 24/7</p>
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-pink-100 px-2.5 py-0.5 text-[11px] font-bold text-[#a50064] border border-pink-200">
+                      ✓ Đã xác thực
+                    </span>
                   </div>
-                  <h4 className="font-bold text-slate-900">
-                    Cổng thanh toán {paymentMethod === 'vnpay' ? 'VNPay Sandbox' : 'Ví MoMo'}
-                  </h4>
-                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                    Hệ thống sẽ chuyển hướng bạn đến cổng xác thực giao dịch an toàn với số tiền{' '}
-                    <strong className="text-slate-900">{depositAmount.toLocaleString('vi-VN')} đ</strong>.
-                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+                    {/* QR Code Column */}
+                    <div className="flex flex-col items-center justify-center rounded-2xl bg-white p-4 shadow-sm border border-pink-100">
+                      <div className="relative">
+                        <img
+                          src={momoQrUrl}
+                          alt="Mã MoMo QR đặt cọc BDS Pro"
+                          className="h-52 w-52 object-contain rounded-xl"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="h-9 w-9 rounded-xl bg-white shadow-md p-1 flex items-center justify-center border border-pink-100">
+                            <span className="text-[10px] font-black text-[#a50064]">momo</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="mt-2 text-center text-[11px] font-semibold text-slate-500">
+                        Mở App MoMo quét mã QR để chuyển tiền cọc tự động
+                      </p>
+                    </div>
+
+                    {/* MoMo Info Details Column */}
+                    <div className="space-y-2.5 text-xs">
+                      <div className="rounded-xl bg-white p-3 border border-pink-100/80 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400">Số điện thoại Ví MoMo</span>
+                          <p className="font-mono text-base font-extrabold text-[#a50064] mt-0.5">
+                            {MOMO_WALLET.phone}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(MOMO_WALLET.phone, 'momo_phone')}
+                          className="rounded-lg bg-pink-50 p-2 text-[#a50064] hover:bg-pink-100 transition cursor-pointer"
+                          title="Sao chép SĐT MoMo"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-3 border border-pink-100/80">
+                        <span className="text-[10px] uppercase font-bold text-slate-400">Tên chủ ví nhận cọc</span>
+                        <p className="font-bold text-slate-800 mt-0.5">{MOMO_WALLET.accountName}</p>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-3 border border-pink-100/80 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400">Số tiền đặt cọc</span>
+                          <p className="text-base font-extrabold text-slate-900 mt-0.5">
+                            {depositAmount.toLocaleString('vi-VN')} VNĐ
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(depositAmount.toString(), 'momo_amt')}
+                          className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-pink-100 hover:text-[#a50064] transition cursor-pointer"
+                          title="Sao chép số tiền"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-3 border border-pink-100/80 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400">Lời nhắn chuyển tiền</span>
+                          <p className="font-mono font-bold text-[#a50064] mt-0.5">{MOMO_WALLET.transferContent}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(MOMO_WALLET.transferContent, 'momo_msg')}
+                          className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-pink-100 hover:text-[#a50064] transition cursor-pointer"
+                          title="Sao chép lời nhắn"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      {/* Direct Deep Link on Mobile */}
+                      <a
+                        href={momoDeepLink}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-pink-100 py-2.5 text-xs font-bold text-[#a50064] hover:bg-pink-200 transition"
+                      >
+                        <Smartphone className="h-4 w-4" />
+                        <span>Mở trực tiếp trên App MoMo</span>
+                      </a>
+
+                      {copiedField && (
+                        <p className="text-center text-[11px] font-bold text-[#a50064]">✓ Đã sao chép vào bộ nhớ tạm!</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PAYMENT VIEW: VNPAY SANDBOX */}
+              {paymentMethod === 'vnpay' && (
+                <div className="rounded-3xl border border-sky-200/90 bg-gradient-to-b from-sky-50/80 to-white p-6 text-center space-y-4">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-600 text-white shadow-md">
+                    <CreditCard className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-slate-900 text-base">Cổng thanh toán điện tử VNPay</h4>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                      Hỗ trợ thẻ ATM nội địa (Vietcombank, BIDV, Agribank, Vietinbank...) và thẻ quốc tế Visa / MasterCard.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-white p-4 border border-sky-100 max-w-sm mx-auto">
+                    <span className="text-xs text-slate-500">Số tiền đặt cọc giữ chỗ:</span>
+                    <p className="text-xl font-black text-sky-700 mt-0.5">
+                      {depositAmount.toLocaleString('vi-VN')} VNĐ
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -492,7 +617,13 @@ export function DepositModal({ property, onClose, onSuccess }: DepositModalProps
                   type="button"
                   onClick={handleConfirmPayment}
                   disabled={isSubmitting}
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 py-3.5 text-xs sm:text-sm font-bold text-white shadow-lg shadow-emerald-600/20 hover:from-emerald-700 hover:to-teal-700 transition cursor-pointer disabled:opacity-50"
+                  className={`flex-1 inline-flex items-center justify-center gap-2 rounded-2xl py-3.5 text-xs sm:text-sm font-bold text-white shadow-lg transition cursor-pointer disabled:opacity-50 ${
+                    paymentMethod === 'momo'
+                      ? 'bg-gradient-to-r from-[#a50064] to-[#d82d8b] shadow-pink-600/20 hover:opacity-95'
+                      : paymentMethod === 'vnpay'
+                      ? 'bg-gradient-to-r from-sky-600 to-blue-700 shadow-sky-600/20 hover:opacity-95'
+                      : 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-600/20 hover:from-emerald-700 hover:to-teal-700'
+                  }`}
                 >
                   {isSubmitting ? (
                     <>
@@ -502,7 +633,13 @@ export function DepositModal({ property, onClose, onSuccess }: DepositModalProps
                   ) : (
                     <>
                       <CheckCircle2 className="h-4 w-4" />
-                      <span>Xác nhận đã chuyển tiền ký quỹ</span>
+                      <span>
+                        {paymentMethod === 'momo'
+                          ? 'Xác nhận đã chuyển tiền qua MoMo'
+                          : paymentMethod === 'vnpay'
+                          ? 'Xác nhận thanh toán qua VNPay'
+                          : 'Xác nhận đã chuyển tiền ký quỹ'}
+                      </span>
                     </>
                   )}
                 </button>

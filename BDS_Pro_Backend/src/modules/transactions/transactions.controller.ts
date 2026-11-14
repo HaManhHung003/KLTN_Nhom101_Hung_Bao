@@ -27,6 +27,15 @@ export class TransactionsController {
     return this.service.createDeposit(buyerId, dto);
   }
 
+  @Post('momo/create')
+  @ApiOperation({ summary: 'Khởi tạo thông tin thanh toán & mã QR qua Ví MoMo' })
+  createMomoPayment(
+    @CurrentUser('id') buyerId: string,
+    @Body() dto: CreateDepositPaymentDto,
+  ) {
+    return this.service.createMomoPayment(buyerId, dto);
+  }
+
   @Post('deals')
   @ApiOperation({ summary: 'Tạo thương vụ mới' })
   createDeal(@CurrentUser('id') buyerId: string, @Body() dto: CreateDealDto) {
