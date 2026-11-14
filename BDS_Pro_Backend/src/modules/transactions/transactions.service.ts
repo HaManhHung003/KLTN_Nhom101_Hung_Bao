@@ -232,4 +232,142 @@ export class TransactionsService {
 
     return this.transRepo.save(transaction);
   }
+
+  /**
+   * Xử lý IPN từ SePay (Payment Gateway hoặc Webhook Ngân hàng tự động)
+   */
+  async handleSepayIpn(payload: any, secretKey?: string) {
+    console.log('[SEPAY IPN] Nhận gói tin:', JSON.stringify(payload, null, 2));
+
+    const EXPECTED_SECRET = 'spsk_test_HCsLfPRTi7wywvRVuXhibfbesn7SvPNx';
+    if (secretKey && secretKey !== EXPECTED_SECRET) {
+      console.warn('[SEPAY IPN] Cảnh báo Secret Key không khớp:', secretKey);
+    }
+
+    // 1. Phản hồi thành công ngay lập tức nếu SePay gửi gói test ping
+    if (
+      payload.notification_type === 'TEST' ||
+      payload.is_test ||
+      payload.test ||
+      (!payload.order && !payload.content && !payload.id)
+    ) {
+      console.log('[SEPAY IPN] Đã xác nhận gói tin TEST từ SePay');
+      return {
+        success: true,
+        message: 'Kết nối SePay IPN thành công (Môi trường test)',
+      };
+    }
+
+    // 2. Trích xuất thông tin giao dịch & mã tham chiếu
+    let refContent = '';
+    let amount = 0;
+
+    if (payload.order) {
+      refContent = payload.order.order_id || payload.order.order_invoice_number || '';
+      amount = Number(payload.order.order_amount) || 0;
+    } else if (payload.content) {
+      refContent = payload.content;
+      amount = Number(payload.transferAmount) || 0;
+    }
+
+    console.log(`[SEPAY IPN] Phân tích nội dung: "${refContent}", Số tiền: ${amount}`);
+
+    // Nội dung chuyển khoản có dạng: "BDSCOC 53" hoặc "BDSCOC 123456"
+    const match = refContent.match(/BDSCOC\s*([A-Za-z0-9_-]+)/i);
+    const code = match ? match[1].trim() : '';
+
+    let property: Property | null = null;
+    let transaction: Transaction | null = null;
+
+    if (code) {
+      // Tìm BĐS có ID khớp hoặc kết thúc bằng mã code
+      property = await this.propRepo
+        .createQueryBuilder('prop')
+        .where('prop.id LIKE :kw', { kw: `%${code}` })
+        .getOne();
+
+      // Hoặc tìm giao dịch đang chờ xử lý
+      transaction = await this.transRepo
+        .createQueryBuilder('trans')
+        .where('trans.receiptId LIKE :kw OR trans.propertyId LIKE :kw', { kw: `%${code}%` })
+        .orderBy('trans.createdAt', 'DESC')
+        .getOne();
+    }
+
+    // Nếu tìm thấy giao dịch có sẵn, đánh dấu hoàn thành
+    if (transaction) {
+      transaction.status = PaymentStatus.COMPLETED;
+      transaction.note = `${transaction.note || ''} | Tự động xác thực qua SePay IPN (+${amount.toLocaleString('vi-VN')}đ)`;
+      await this.transRepo.save(transaction);
+
+      await this.dealRepo.update(
+        { propertyId: transaction.propertyId, buyerId: transaction.buyerId },
+        { dealStatus: DealStatus.DEPOSIT_PAID },
+      );
+      console.log(`[SEPAY IPN] Đã cập nhật thành công giao dịch: ${transaction.receiptId}`);
+    } else if (property) {
+      // Nếu khách quét QR chuyển khoản trực tiếp, tự động sinh Transaction & Deal
+      const receiptCode = `REC_SEPAY_${Date.now()}`;
+      const newTrans = this.transRepo.create({
+        propertyId: property.id,
+        buyerId: property.ownerId || '00000000-0000-0000-0000-000000000000',
+        agentId: property.ownerId || '00000000-0000-0000-0000-000000000000',
+        amount: amount || 50000000,
+        method: PaymentMethod.BANK,
+        status: PaymentStatus.COMPLETED,
+        receiptId: receiptCode,
+        note: `Thanh toán cọc tự động qua SePay VPBank. Nội dung: ${refContent}`,
+      });
+      await this.transRepo.save(newTrans);
+      console.log(`[SEPAY IPN] Đã tự động tạo giao dịch cọc mới cho BĐS: ${property.title}`);
+    }
+
+    return {
+      success: true,
+      message: 'SePay IPN processed successfully',
+      matched: !!(transaction || property),
+    };
+  }
+
+  /**
+   * Kiểm tra trạng thái đặt cọc tự động theo propertyId (Dùng cho Polling Frontend)
+   */
+  async checkPaymentStatus(propertyId: string) {
+    const transaction = await this.transRepo
+      .createQueryBuilder('trans')
+      .leftJoinAndSelect('trans.property', 'property')
+      .where('trans.propertyId LIKE :propId', { propId: `%${propertyId.slice(-6)}%` })
+      .andWhere('trans.status = :status', { status: PaymentStatus.COMPLETED })
+      .orderBy('trans.createdAt', 'DESC')
+      .getOne();
+
+    if (transaction) {
+      return {
+        isPaid: true,
+        transaction,
+        receiptId: transaction.receiptId,
+        amount: transaction.amount,
+        createdAt: transaction.createdAt,
+      };
+    }
+
+    return {
+      isPaid: false,
+    };
+  }
+
+  /**
+   * Giả lập SePay IPN thanh toán thành công (Dùng cho Demo trực tiếp)
+   */
+  async simulateSepayPayment(propertyId: string, amount: number = 50000000) {
+    const payload = {
+      id: Math.floor(Math.random() * 900000 + 100000),
+      gateway: 'VPBank',
+      accountNumber: '0332536815',
+      content: `BDSCOC ${propertyId.slice(-6).toUpperCase()}`,
+      transferAmount: amount,
+      transferType: 'in',
+    };
+    return this.handleSepayIpn(payload, 'spsk_test_HCsLfPRTi7wywvRVuXhibfbesn7SvPNx');
+  }
 }

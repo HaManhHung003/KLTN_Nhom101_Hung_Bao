@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   CheckCircle2,
   Copy,
@@ -10,6 +10,7 @@ import {
   QrCode,
   ShieldCheck,
   Smartphone,
+  Sparkles,
   X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -44,6 +45,7 @@ export function DepositModal({ property, onClose, onSuccess }: DepositModalProps
   // Payment method: 'bank' (VietQR), 'vnpay', 'momo'
   const [paymentMethod, setPaymentMethod] = useState<'bank' | 'vnpay' | 'momo'>('bank');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [depositResult, setDepositResult] = useState<DepositResponse | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
@@ -71,6 +73,57 @@ export function DepositModal({ property, onClose, onSuccess }: DepositModalProps
   const momoDeepLink = `momo://?action=transfer&phone=0332536815&amount=${depositAmount}&note=${encodeURIComponent(
     MOMO_WALLET.transferContent,
   )}`;
+
+  // Tự động lắng nghe trạng thái thanh toán từ SePay Webhook / Bank IPN (Polling 2.5s)
+  useEffect(() => {
+    if (step !== 2) return;
+
+    let isMounted = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await transactionService.checkPaymentStatus(property.id);
+        if (res?.isPaid && isMounted) {
+          clearInterval(interval);
+          const autoResult: DepositResponse = {
+            success: true,
+            message: 'Tự động xác thực thanh toán thành công qua SePay Gateway!',
+            receiptId: res.receiptId || `REC_SEPAY_${Date.now()}`,
+            transaction: res.transaction,
+            deal: res.transaction?.deal,
+            property: {
+              id: property.id,
+              title: property.title,
+              price: property.price,
+              address: property.address,
+              image: property.images?.[0] || (property as any).media?.[0]?.url || null,
+            },
+          };
+          setDepositResult(autoResult);
+          setStep(3);
+          if (onSuccess) onSuccess(autoResult);
+        }
+      } catch (err) {
+        // bỏ qua lỗi gián đoạn mạng khi polling
+      }
+    }, 2500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [step, property.id, property, onSuccess]);
+
+  const handleSimulatePayment = async () => {
+    try {
+      setIsSimulating(true);
+      await transactionService.simulateSepayPayment(property.id, depositAmount);
+    } catch (err: any) {
+      console.error('Lỗi khi giả lập SePay:', err);
+      alert('Không thể kích hoạt giả lập SePay: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setIsSimulating(false);
+    }
+  };
 
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -602,6 +655,43 @@ export function DepositModal({ property, onClose, onSuccess }: DepositModalProps
                   </div>
                 </div>
               )}
+
+              {/* Realtime Auto-Detection Notice (SePay Webhook) */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl bg-emerald-50/90 border border-emerald-200/90 p-3.5 text-xs text-emerald-900 shadow-xs">
+                <div className="flex items-center gap-2.5">
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                  </span>
+                  <div>
+                    <p className="font-bold text-emerald-950 flex items-center gap-1.5">
+                      <span>Lắng nghe biến động số dư tự động (SePay Webhook)</span>
+                      <span className="rounded-md bg-emerald-200/70 px-1.5 py-0.5 text-[10px] font-black text-emerald-800">
+                        24/7 LIVE
+                      </span>
+                    </p>
+                    <p className="text-[11px] text-emerald-700 mt-0.5">
+                      Sau khi chuyển khoản 1-3 giây, hệ thống sẽ tự động chuyển sang trang Biên lai mà không cần bấm nút.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Simulate Button for Demo */}
+                <button
+                  type="button"
+                  onClick={handleSimulatePayment}
+                  disabled={isSimulating}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-white px-3 py-1.5 font-bold text-emerald-700 border border-emerald-300 shadow-xs hover:bg-emerald-100 hover:text-emerald-900 transition cursor-pointer text-[11px] whitespace-nowrap disabled:opacity-50"
+                  title="Nhấn để giả lập biến động số dư SePay tự động phát hiện cọc"
+                >
+                  {isSimulating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                  )}
+                  <span>Test nhận tiền tự động (Demo)</span>
+                </button>
+              </div>
 
               {/* Navigation Buttons */}
               <div className="flex gap-3 pt-2">

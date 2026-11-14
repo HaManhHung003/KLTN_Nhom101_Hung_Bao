@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { TransactionsService } from './transactions.service';
 import {
@@ -9,7 +9,7 @@ import {
   QueryDealDto,
   UpdateDealStatusDto,
 } from './dto/transaction.dto';
-import { CurrentUser, Roles } from '@/common/decorators';
+import { CurrentUser, Public, Roles } from '@/common/decorators';
 import { UserRole } from '@/common/enums';
 
 @ApiTags('Transactions & Deals')
@@ -90,5 +90,29 @@ export class TransactionsController {
     @Body() dto: EscrowActionDto,
   ) {
     return this.service.handleEscrowAction(id, dto);
+  }
+
+  @Public()
+  @Post('sepay/ipn')
+  @ApiOperation({ summary: 'SePay Webhook IPN: Nhận thông báo tự động khi khách chuyển khoản cọc' })
+  handleSepayIpn(
+    @Body() payload: any,
+    @Headers('x-secret-key') secretKey?: string,
+  ) {
+    return this.service.handleSepayIpn(payload, secretKey);
+  }
+
+  @Public()
+  @Get('status/:propertyId')
+  @ApiOperation({ summary: 'Kiểm tra trạng thái đặt cọc tự động của BĐS thời gian thực (Polling)' })
+  checkStatus(@Param('propertyId') propertyId: string) {
+    return this.service.checkPaymentStatus(propertyId);
+  }
+
+  @Public()
+  @Post('sepay/simulate')
+  @ApiOperation({ summary: 'Giả lập SePay IPN thanh toán cọc thành công (Test / Demo)' })
+  simulatePayment(@Body() body: { propertyId: string; amount?: number }) {
+    return this.service.simulateSepayPayment(body.propertyId, body.amount);
   }
 }

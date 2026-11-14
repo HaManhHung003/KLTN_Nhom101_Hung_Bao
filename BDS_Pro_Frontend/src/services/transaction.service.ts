@@ -139,5 +139,17 @@ export const transactionService = {
     const res = await api.patch(`/transactions/admin/${id}/escrow-action`, { action, reason });
     return res.data;
   },
+
+  /** Kiểm tra trạng thái thanh toán tự động qua SePay Webhook (Polling) */
+  async checkPaymentStatus(propertyId: string) {
+    const res = await api.get(`/transactions/status/${propertyId}`);
+    return res.data;
+  },
+
+  /** Giả lập nhận tiền SePay IPN thành công (Dành cho Test / Demo KLTN) */
+  async simulateSepayPayment(propertyId: string, amount?: number) {
+    const res = await api.post('/transactions/sepay/simulate', { propertyId, amount });
+    return res.data;
+  },
 };
 
