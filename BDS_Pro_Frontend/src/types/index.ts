@@ -111,6 +111,8 @@ export interface Report {
 }
 
 export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'refunded' | 'disputed'
+export type PaymentStatus = TransactionStatus
+export type PaymentMethod = 'vnpay' | 'momo' | 'bank' | 'bank_transfer'
 
 export interface Transaction {
   id: string

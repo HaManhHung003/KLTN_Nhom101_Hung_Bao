@@ -830,7 +830,13 @@ export function ClientPropertyDetailPage() {
 
       {/* Modals */}
       {showBooking && <BookingModal property={property} onClose={() => setShowBooking(false)} />}
-      {showDeposit && <DepositModal property={property} onClose={() => setShowDeposit(false)} />}
+      {showDeposit && (
+        <DepositModal
+          property={property}
+          onClose={() => setShowDeposit(false)}
+          onSuccess={(res) => setToast(`Ký quỹ đặt cọc thành công! Mã: #${res.receiptId}`)}
+        />
+      )}
       {showReport && (
         <ReportListingModal
           property={property}
