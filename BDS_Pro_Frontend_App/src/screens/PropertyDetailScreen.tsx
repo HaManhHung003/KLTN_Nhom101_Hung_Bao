@@ -12,6 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Property } from '../types';
 import { formatPrice, formatArea } from '../utils/format';
 import { DepositModal } from '../components/DepositModal';
+import { BookingModal } from '../components/BookingModal';
+import { ReportListingModal } from '../components/ReportListingModal';
 
 interface PropertyDetailScreenProps {
   property: Property;
@@ -29,6 +31,8 @@ export function PropertyDetailScreen({
   onDepositSuccess,
 }: PropertyDetailScreenProps) {
   const [showDepositModal, setShowDepositModal] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const handleShare = async () => {
     try {
@@ -56,6 +60,9 @@ export function PropertyDetailScreen({
             </TouchableOpacity>
 
             <View style={styles.rightActions}>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => setShowReportModal(true)}>
+                <Ionicons name="flag-outline" size={20} color="#64748b" />
+              </TouchableOpacity>
               <TouchableOpacity style={styles.iconBtn} onPress={handleShare}>
                 <Ionicons name="share-social-outline" size={20} color="#0f172a" />
               </TouchableOpacity>
@@ -129,6 +136,44 @@ export function PropertyDetailScreen({
             </Text>
           </View>
 
+          {/* POIs: Tiện ích xung quanh */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Tiện ích xung quanh vị trí</Text>
+            <View style={styles.poisGrid}>
+              <View style={styles.poiItem}>
+                <Ionicons name="subway-outline" size={20} color="#059669" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.poiName}>Ga Metro Bến Thành - Suối Tiên</Text>
+                  <Text style={styles.poiDist}>Cách 350 mét</Text>
+                </View>
+              </View>
+
+              <View style={styles.poiItem}>
+                <Ionicons name="cart-outline" size={20} color="#0284c7" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.poiName}>TTTM Vincom Mega Mall</Text>
+                  <Text style={styles.poiDist}>Cách 500 mét</Text>
+                </View>
+              </View>
+
+              <View style={styles.poiItem}>
+                <Ionicons name="medkit-outline" size={20} color="#ef4444" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.poiName}>Bệnh viện Đa khoa Quốc tế</Text>
+                  <Text style={styles.poiDist}>Cách 1.2 km</Text>
+                </View>
+              </View>
+
+              <View style={styles.poiItem}>
+                <Ionicons name="school-outline" size={20} color="#8b5cf6" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.poiName}>Trường Quốc tế Vinschool / BIS</Text>
+                  <Text style={styles.poiDist}>Cách 800 mét</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
           {/* Broker Info */}
           <View style={styles.brokerCard}>
             <View style={styles.brokerAvatar}>
@@ -145,20 +190,26 @@ export function PropertyDetailScreen({
         </View>
       </ScrollView>
 
-      {/* Bottom Floating Bar */}
+      {/* Bottom Floating Bar with 2 actions: Đặt lịch & Đặt cọc */}
       <View style={styles.bottomBar}>
-        <View>
-          <Text style={styles.bottomLbl}>Mức cọc tham chiếu</Text>
-          <Text style={styles.bottomPrice}>
-            {property.transactionType === 'rent' ? '5.000.000 đ' : '50.000.000 đ'}
-          </Text>
-        </View>
+        <TouchableOpacity style={styles.bookingBtn} onPress={() => setShowBookingModal(true)}>
+          <Ionicons name="calendar-outline" size={18} color="#0f172a" />
+          <Text style={styles.bookingBtnText}>Đặt lịch xem</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.depositBtn} onPress={() => setShowDepositModal(true)}>
           <Ionicons name="shield-checkmark" size={18} color="#ffffff" />
           <Text style={styles.depositBtnText}>Đặt cọc giữ chỗ ngay</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Booking Modal */}
+      <BookingModal
+        visible={showBookingModal}
+        property={property}
+        onClose={() => setShowBookingModal(false)}
+        onSuccess={() => {}}
+      />
 
       {/* Deposit Modal */}
       <DepositModal
@@ -169,6 +220,13 @@ export function PropertyDetailScreen({
           setShowDepositModal(false);
           onDepositSuccess();
         }}
+      />
+
+      {/* Report Modal */}
+      <ReportListingModal
+        visible={showReportModal}
+        property={property}
+        onClose={() => setShowReportModal(false)}
       />
     </View>
   );
@@ -215,7 +273,7 @@ const styles = StyleSheet.create({
   },
   rightActions: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
   badge: {
     position: 'absolute',
@@ -315,12 +373,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: '#0f172a',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   descriptionText: {
     fontSize: 14,
     lineHeight: 22,
     color: '#475569',
+  },
+  poisGrid: {
+    gap: 10,
+  },
+  poiItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#f8fafc',
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  poiName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  poiDist: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 2,
   },
   brokerCard: {
     flexDirection: 'row',
@@ -371,34 +452,42 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 28,
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
+    gap: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.06,
     shadowRadius: 10,
     elevation: 8,
   },
-  bottomLbl: {
-    fontSize: 11,
-    color: '#64748b',
-  },
-  bottomPrice: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#059669',
-    marginTop: 2,
-  },
-  depositBtn: {
+  bookingBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  bookingBtnText: {
+    color: '#0f172a',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  depositBtn: {
+    flex: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     backgroundColor: '#059669',
-    paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 16,
     shadowColor: '#059669',

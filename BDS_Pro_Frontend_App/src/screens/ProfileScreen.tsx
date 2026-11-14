@@ -10,15 +10,25 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { LoginModal } from './LoginModal';
+import { AppointmentsScreen } from './AppointmentsScreen';
+import { PostPropertyModal } from '../components/PostPropertyModal';
+import { Property } from '../types';
 
 interface ProfileScreenProps {
   onNavigateToDeals?: () => void;
   onNavigateToFavorites?: () => void;
+  onPropertyCreated?: (newProp: Property) => void;
 }
 
-export function ProfileScreen({ onNavigateToDeals, onNavigateToFavorites }: ProfileScreenProps) {
+export function ProfileScreen({
+  onNavigateToDeals,
+  onNavigateToFavorites,
+  onPropertyCreated,
+}: ProfileScreenProps) {
   const { user, logout } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showAppointments, setShowAppointments] = useState(false);
+  const [showPostProperty, setShowPostProperty] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -43,6 +53,10 @@ export function ProfileScreen({ onNavigateToDeals, onNavigateToFavorites }: Prof
     if (role === 'agent') return 'Môi giới BĐS';
     return 'Khách hàng (Người mua/thuê)';
   };
+
+  if (showAppointments) {
+    return <AppointmentsScreen onBack={() => setShowAppointments(false)} />;
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
@@ -82,6 +96,28 @@ export function ProfileScreen({ onNavigateToDeals, onNavigateToFavorites }: Prof
       {/* Account Settings Menu */}
       <View style={styles.menuSection}>
         <Text style={styles.menuSectionTitle}>Tài khoản & Hoạt động</Text>
+
+        <TouchableOpacity style={styles.menuItem} onPress={() => setShowAppointments(true)}>
+          <View style={[styles.menuIconWrap, { backgroundColor: '#f0fdf4' }]}>
+            <Ionicons name="calendar" size={20} color="#059669" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.menuItemTitle}>Lịch hẹn xem nhà của tôi</Text>
+            <Text style={styles.menuItemSub}>Xem các cuộc hẹn xem căn hộ đã đặt</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={() => setShowPostProperty(true)}>
+          <View style={[styles.menuIconWrap, { backgroundColor: '#ecfdf5' }]}>
+            <Ionicons name="add-circle" size={20} color="#059669" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.menuItemTitle}>Đăng tin BĐS mới</Text>
+            <Text style={styles.menuItemSub}>Dành cho Chủ nhà & Môi giới đăng bán / cho thuê</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuItem} onPress={onNavigateToDeals}>
           <View style={[styles.menuIconWrap, { backgroundColor: '#ecfdf5' }]}>
@@ -133,6 +169,15 @@ export function ProfileScreen({ onNavigateToDeals, onNavigateToFavorites }: Prof
 
       {/* Login Modal */}
       <LoginModal visible={showLoginModal} onClose={() => setShowLoginModal(false)} />
+
+      {/* Post Property Modal */}
+      <PostPropertyModal
+        visible={showPostProperty}
+        onClose={() => setShowPostProperty(false)}
+        onSuccess={(newProp) => {
+          if (onPropertyCreated) onPropertyCreated(newProp);
+        }}
+      />
     </ScrollView>
   );
 }

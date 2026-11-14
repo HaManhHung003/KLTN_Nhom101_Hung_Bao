@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
   FlatList,
@@ -12,6 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Property } from '../types';
 import { PropertyCard } from '../components/PropertyCard';
+import { AiChatbotModal } from '../components/AiChatbotModal';
+import { PostPropertyModal } from '../components/PostPropertyModal';
 
 interface HomeScreenProps {
   properties: Property[];
@@ -21,6 +22,7 @@ interface HomeScreenProps {
   onRefresh: () => void;
   refreshing: boolean;
   onOpenProfile?: () => void;
+  onPropertyCreated?: (newProp: Property) => void;
 }
 
 export function HomeScreen({
@@ -31,9 +33,12 @@ export function HomeScreen({
   onRefresh,
   refreshing,
   onOpenProfile,
+  onPropertyCreated,
 }: HomeScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'sale' | 'rent'>('all');
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [showPostModal, setShowPostModal] = useState(false);
 
   const filteredProperties = properties.filter((p) => {
     const matchType = selectedType === 'all' || p.transactionType === selectedType;
@@ -58,9 +63,20 @@ export function HomeScreen({
           <Text style={styles.appTitle}>BDS Pro Mobile</Text>
         </View>
 
-        <TouchableOpacity style={styles.avatarWrap} onPress={onOpenProfile}>
-          <Text style={styles.avatarText}>VB</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.postBtnHeader}
+            activeOpacity={0.8}
+            onPress={() => setShowPostModal(true)}
+          >
+            <Ionicons name="add-circle" size={18} color="#059669" />
+            <Text style={styles.postBtnText}>Đăng tin</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.avatarWrap} onPress={onOpenProfile}>
+            <Text style={styles.avatarText}>VB</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search Input Bar */}
@@ -126,6 +142,34 @@ export function HomeScreen({
           </View>
         }
       />
+
+      {/* Floating AI Assistant Button */}
+      <TouchableOpacity
+        style={styles.floatingAiBtn}
+        activeOpacity={0.88}
+        onPress={() => setShowAiModal(true)}
+      >
+        <Ionicons name="sparkles" size={18} color="#ffffff" />
+        <Text style={styles.floatingAiText}>Trợ lý AI</Text>
+      </TouchableOpacity>
+
+      {/* AI Chatbot Modal */}
+      <AiChatbotModal
+        visible={showAiModal}
+        onClose={() => setShowAiModal(false)}
+        properties={properties}
+        onSelectProperty={onSelectProperty}
+      />
+
+      {/* Post Property Modal */}
+      <PostPropertyModal
+        visible={showPostModal}
+        onClose={() => setShowPostModal(false)}
+        onSuccess={(newProp) => {
+          if (onPropertyCreated) onPropertyCreated(newProp);
+          onRefresh();
+        }}
+      />
     </View>
   );
 }
@@ -160,17 +204,38 @@ const styles = StyleSheet.create({
     marginTop: 2,
     letterSpacing: -0.5,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  postBtnHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  postBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#059669',
+  },
   avatarWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: '#059669',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     color: '#ffffff',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '900',
   },
   searchBarWrap: {
@@ -229,5 +294,27 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: '#64748b',
+  },
+  floatingAiBtn: {
+    position: 'absolute',
+    bottom: 80,
+    right: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#059669',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 25,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  floatingAiText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800',
   },
 });
